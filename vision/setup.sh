@@ -1,0 +1,1 @@
+python3 -m venv 106a-venv && source 106a-venv/bin/activate && pip3 install -r requirements.txt
