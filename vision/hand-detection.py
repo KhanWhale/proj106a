@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import cv2
+import numpy as np
 import mediapipe as mp
 from google.protobuf.json_format import MessageToDict
 
@@ -58,6 +59,33 @@ with mp_hands.Hands(
             for keypoint in mp_hands.HandLandmark:
                 print(f"{keypoint.name}: ({hand_landmarks.landmark[keypoint.value].x * image_width}, {hand_landmarks.landmark[keypoint.value].y * image_height}, {hand_landmarks.landmark[keypoint.value].z})")
             print("\n\n")
+
+            thumb_tip = np.array([hand_landmarks.landmark[4].x, hand_landmarks.landmark[4].y])
+            index_tip = np.array([hand_landmarks.landmark[8].x, hand_landmarks.landmark[8].y])
+            middle_tip = np.array([hand_landmarks.landmark[12].x, hand_landmarks.landmark[12].y])
+            ring_tip = np.array([hand_landmarks.landmark[16].x, hand_landmarks.landmark[16].y])
+            pinky_tip = np.array([hand_landmarks.landmark[20].x, hand_landmarks.landmark[20].y])
+
+            index_distance = np.linalg.norm(index_tip - thumb_tip)
+            middle_distance = np.linalg.norm(middle_tip - thumb_tip)
+            ring_distance = np.linalg.norm(ring_tip - thumb_tip)
+            pinky_distance = np.linalg.norm(pinky_tip - thumb_tip)
+
+            print(f"Index Distance: {index_distance}")
+            print(f"Middle Distance: {middle_distance}")
+            print(f"Ring Distance: {ring_distance}")
+            print(f"Pinky Distance: {pinky_distance}")
+
+            touch_gesture_threshold = 0.05
+            
+            if index_distance < touch_gesture_threshold:
+              print(f"\nINDEX GESTURE\n")
+            elif middle_distance < touch_gesture_threshold:
+              print(f"\nMIDDLE GESTURE\n")
+            elif ring_distance < touch_gesture_threshold:
+              print(f"\nRING GESTURE\n")
+            elif pinky_distance < touch_gesture_threshold:
+              print(f"\nPINKY GESTURE\n")
 
             mp_drawing.draw_landmarks(
                 image,
