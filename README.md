@@ -2,6 +2,7 @@
 ## CV Pipeline
 
 * How to setup/use virtual environment with Google MediaPipe dependencies:
+  * `cd vision`
   * `source setup.sh` only the first time
   * `source activate.sh` any time after that
 
