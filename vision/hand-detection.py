@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import mediapipe as mp
 from google.protobuf.json_format import MessageToDict
+from scipy.linalg import lstsq
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -52,13 +53,34 @@ with mp_hands.Hands(
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     if results.multi_hand_landmarks:
         os.system('clear')
-
+        x_coords = np.array([])
+        y_coords = np.array([])
+        z_coords = np.array([])
         for (hand_landmarks, handedness) in zip(results.multi_hand_landmarks, results.multi_handedness):
             handedness_dict = MessageToDict(handedness)
             print(f"{handedness_dict['classification'][0]['label']} Hand Keypoints Detected:")
             for keypoint in mp_hands.HandLandmark:
                 print(f"{keypoint.name}: ({hand_landmarks.landmark[keypoint.value].x * image_width}, {hand_landmarks.landmark[keypoint.value].y * image_height}, {hand_landmarks.landmark[keypoint.value].z})")
             print("\n\n")
+
+            # get coordinates
+            x_coords = np.append(x_coords, np.array([hand_landmarks.landmark[i].x for i in range(21)]))
+            y_coords = np.append(y_coords, np.array([hand_landmarks.landmark[i].y for i in range(21)]))
+            z_coords = np.append(z_coords, np.array([hand_landmarks.landmark[i].z for i in range(21)]))
+            print("\nx_coords", x_coords)
+            print("\ny_coords", y_coords)
+            print("\nz_coords", z_coords)
+
+            # set up linear system
+            ones = np.repeat(1, len(x_coords))
+            A = np.concatenate((x_coords[:,np.newaxis], y_coords[:,np.newaxis], ones[:,np.newaxis]),axis=1)
+            b = z_coords
+            plane_coeffs, residual, rnk, s = lstsq(A, b)
+
+            # get best fit plane
+            X, Y = np.linspace(np.min(x_coords), np.max(x_coords), 10), np.linspace(np.min(y_coords), np.max(y_coords), 10)
+            best_fit_plane = plane_coeffs[0]*X + plane_coeffs[1]*Y + plane_coeffs[2]
+            print("\n best fit plane", best_fit_plane)
 
             thumb_tip = np.array([hand_landmarks.landmark[4].x, hand_landmarks.landmark[4].y])
             index_tip = np.array([hand_landmarks.landmark[8].x, hand_landmarks.landmark[8].y])
