@@ -6,6 +6,9 @@ import numpy as np
 import mediapipe as mp
 from google.protobuf.json_format import MessageToDict
 from scipy.linalg import lstsq
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from graph import *
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -67,9 +70,6 @@ with mp_hands.Hands(
             x_coords = np.append(x_coords, np.array([hand_landmarks.landmark[i].x for i in range(21)]))
             y_coords = np.append(y_coords, np.array([hand_landmarks.landmark[i].y for i in range(21)]))
             z_coords = np.append(z_coords, np.array([hand_landmarks.landmark[i].z for i in range(21)]))
-            print("\nx_coords", x_coords)
-            print("\ny_coords", y_coords)
-            print("\nz_coords", z_coords)
 
             # set up linear system
             ones = np.repeat(1, len(x_coords))
@@ -77,10 +77,27 @@ with mp_hands.Hands(
             b = z_coords
             plane_coeffs, residual, rnk, s = lstsq(A, b)
 
-            # get best fit plane
-            X, Y = np.linspace(np.min(x_coords), np.max(x_coords), 10), np.linspace(np.min(y_coords), np.max(y_coords), 10)
-            best_fit_plane = plane_coeffs[0]*X + plane_coeffs[1]*Y + plane_coeffs[2]
-            print("\n best fit plane", best_fit_plane)
+            #fig = plt.figure()
+            #ax = fig.add_subplot(111, projection='3d')
+            #ax.scatter(x_coords, y_coords, z_coords, color='g')
+
+            X,Y = np.meshgrid(x_coords, y_coords)
+            Z = plane_coeffs[0] * X + plane_coeffs[1] * Y + plane_coeffs[2]
+
+            best_fit_plane = np.array([X.flatten(), Y.flatten(), Z.flatten()])
+            centroid = np.mean(best_fit_plane, axis=1, keepdims=True)
+            svd = np.linalg.svd(best_fit_plane - centroid)
+            normal_vector = svd[0][:, -1] #left singular vector
+            #normal_fn = lambda X,Y,Z: np.cross(np.array([X[1]-X[0], Y[1]-Y[0], Z[1]-Z[0]]), np.array([X[2]-X[0], Y[2]-Y[0], Z[2]-Z[0]]))
+
+            print("\n Normal", normal_vector)
+            origin = centroid.flatten()
+            print("\n Origin", origin)
+            """ax.quiver(origin[0], origin[1], origin[2], normal_vector[0], normal_vector[1], normal_vector[2])
+            ax.plot_surface(X, Y, Z)
+            set_axes_equal(ax)
+            plt.show()"""
+
 
             thumb_tip = np.array([hand_landmarks.landmark[4].x, hand_landmarks.landmark[4].y])
             index_tip = np.array([hand_landmarks.landmark[8].x, hand_landmarks.landmark[8].y])
@@ -117,7 +134,7 @@ with mp_hands.Hands(
                 mp_drawing_styles.get_default_hand_connections_style())
 
         print(f"FPS: {fps}")
-
+      
     # Flip the image horizontally for a selfie-view display.
     flipped = cv2.flip(image, 1)
     cv2.imshow('MediaPipe Hands', flipped)
