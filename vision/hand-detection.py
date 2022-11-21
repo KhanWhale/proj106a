@@ -77,9 +77,9 @@ with mp_hands.Hands(
             b = z_coords
             plane_coeffs, residual, rnk, s = lstsq(A, b)
 
-            #fig = plt.figure()
-            #ax = fig.add_subplot(111, projection='3d')
-            #ax.scatter(x_coords, y_coords, z_coords, color='g')
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            ax.scatter(x_coords, y_coords, z_coords, color='g')
 
             X,Y = np.meshgrid(x_coords, y_coords)
             Z = plane_coeffs[0] * X + plane_coeffs[1] * Y + plane_coeffs[2]
@@ -93,10 +93,15 @@ with mp_hands.Hands(
             print("\n Normal", normal_vector)
             origin = centroid.flatten()
             print("\n Origin", origin)
-            """ax.quiver(origin[0], origin[1], origin[2], normal_vector[0], normal_vector[1], normal_vector[2])
+            ax.quiver(origin[0], origin[1], origin[2], normal_vector[0], normal_vector[1], normal_vector[2])
+            axes2 = np.array([hand_landmarks.landmark[12].x, hand_landmarks.landmark[12].y, hand_landmarks.landmark[12].z])
+            ax.quiver(origin[0], origin[1], origin[2], axes2[0], axes2[1], axes2[2])
+            cross_prod_fn = lambda vec1,vec2: np.cross(vec1, vec2)
+            axes3 = cross_prod_fn(normal_vector, axes2)
+            ax.quiver(origin[0], origin[1], origin[2], axes3[0], axes3[1], axes3[2])
             ax.plot_surface(X, Y, Z)
             set_axes_equal(ax)
-            plt.show()"""
+            plt.show()
 
 
             thumb_tip = np.array([hand_landmarks.landmark[4].x, hand_landmarks.landmark[4].y])
