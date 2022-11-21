@@ -24,6 +24,8 @@ fps = 0
 camera_input = 0 if len(sys.argv) < 2 else int(sys.argv[1])
 cap = cv2.VideoCapture(camera_input)
 
+base_axis1, base_axis2, base_axis3 = None, None, None
+
 with mp_hands.Hands(
     model_complexity=1,
     min_detection_confidence=0.5,
@@ -87,17 +89,29 @@ with mp_hands.Hands(
             best_fit_plane = np.array([X.flatten(), Y.flatten(), Z.flatten()])
             centroid = np.mean(best_fit_plane, axis=1, keepdims=True)
             svd = np.linalg.svd(best_fit_plane - centroid)
+            if base_axis1 is None:
+              base_axis1 = svd[0][:, -1]
             normal_vector = svd[0][:, -1] #left singular vector
             #normal_fn = lambda X,Y,Z: np.cross(np.array([X[1]-X[0], Y[1]-Y[0], Z[1]-Z[0]]), np.array([X[2]-X[0], Y[2]-Y[0], Z[2]-Z[0]]))
 
-            print("\n Normal", normal_vector)
             origin = centroid.flatten()
-            print("\n Origin", origin)
             ax.quiver(origin[0], origin[1], origin[2], normal_vector[0], normal_vector[1], normal_vector[2])
+            if base_axis2 is None:
+              base_axis2 = np.array([hand_landmarks.landmark[12].x, hand_landmarks.landmark[12].y, hand_landmarks.landmark[12].z])
             axes2 = np.array([hand_landmarks.landmark[12].x, hand_landmarks.landmark[12].y, hand_landmarks.landmark[12].z])
             ax.quiver(origin[0], origin[1], origin[2], axes2[0], axes2[1], axes2[2])
             cross_prod_fn = lambda vec1,vec2: np.cross(vec1, vec2)
+            if base_axis3 is None:
+              base_axis3 = cross_prod_fn(normal_vector, axes2)
             axes3 = cross_prod_fn(normal_vector, axes2)
+
+            angle_1 = np.arccos(np.dot(base_axis1-origin, normal_vector-origin) / (np.linalg.norm(base_axis1-origin) * np.linalg.norm(normal_vector-origin)))
+            print("\n Angle 1:", angle_1)
+            angle_2 = np.arccos(np.dot(base_axis2-origin, axes2-origin) / (np.linalg.norm(base_axis2-origin) * np.linalg.norm(axes2-origin)))
+            print("\n Angle 2:", angle_2)
+            angle_3 = np.arccos(np.dot(base_axis3-origin, axes3-origin) / (np.linalg.norm(base_axis3-origin) * np.linalg.norm(axes3-origin)))
+            print("\n Angle 3:", angle_3)
+
             ax.quiver(origin[0], origin[1], origin[2], axes3[0], axes3[1], axes3[2])
             ax.plot_surface(X, Y, Z)
             set_axes_equal(ax)
