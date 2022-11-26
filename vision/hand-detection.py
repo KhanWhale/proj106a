@@ -9,7 +9,7 @@ from scipy.linalg import lstsq
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from graph import *
-
+import time
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_hands = mp.solutions.hands
@@ -23,7 +23,7 @@ fps = 0
 # (0 is the built-in camera, 1 is the first external camera, etc.)
 camera_input = 0 if len(sys.argv) < 2 else int(sys.argv[1])
 cap = cv2.VideoCapture(camera_input)
-
+base_frame = False
 base_axis1, base_axis2, base_axis3 = None, None, None
 
 with mp_hands.Hands(
@@ -40,7 +40,11 @@ with mp_hands.Hands(
       continue
 
     image_height, image_width, _ = image.shape
-
+    if not base_frame:
+      print("\n\n\n *************** Smart Jedi X-Wing Starfighter *************** \n\nPlease place your hand in the frame to initialize the base frame and then hit enter\n\n")
+      #cv2.waitKey(10)
+      time.sleep(3)
+      base_frame=True
     # To improve performance, optionally mark the image as not writeable to
     # pass by reference.
     image.flags.writeable = False
@@ -115,7 +119,7 @@ with mp_hands.Hands(
             ax.quiver(origin[0], origin[1], origin[2], axes3[0], axes3[1], axes3[2])
             ax.plot_surface(X, Y, Z)
             set_axes_equal(ax)
-            plt.show()
+            #plt.show()
 
 
             thumb_tip = np.array([hand_landmarks.landmark[4].x, hand_landmarks.landmark[4].y])
