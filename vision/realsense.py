@@ -4,10 +4,11 @@ import time
 import cv2
 import numpy as np
 import mediapipe as mp
-import handdetection
+import hand_detection
 import pyrealsense2 as rs
 from scipy.linalg import lstsq
 import matplotlib.pyplot as plt
+import hand_orientation
 
 pipeline = rs.pipeline()
 config = rs.config()
@@ -42,7 +43,7 @@ print("Depth Scale is: " , depth_scale)
 align_to = rs.stream.color
 align = rs.align(align_to)
 
-handdetection.init()
+hand_detection.init()
 
 # FPS calculation initialization
 start_time = time.time()
@@ -77,7 +78,7 @@ try:
 		color_image = np.asanyarray(color_frame.get_data())
 		image_height, image_width, _ = color_image.shape
 
-		processed_img, hand_landmarks, gesture = handdetection.process(color_image)
+		processed_img, hand_landmarks, gesture = hand_detection.process(color_image)
 		if hand_landmarks:
 			landmarks = hand_landmarks.landmark
 
@@ -87,63 +88,24 @@ try:
 				depth = 0
 				if rounded_x >= 0 and rounded_x < 480 and rounded_y >= 0 and rounded_y < 480:
 					depth = depth_image[rounded_y][rounded_x]
-				#z_coords = np.append(z_coords, depth)
+				x_coords = np.append(x_coords, hand_landmarks.landmark[i].x)
+				y_coords = np.append(y_coords, hand_landmarks.landmark[i].y)
+				z_coords = np.append(z_coords, hand_landmarks.landmark[i].z)
+
 				print(f"{mp.solutions.hands.HandLandmark(i)}: (X: {pixel_x}, Y: {pixel_y}, Depth: {depth})")
 			print("\n\n")
 
 			#z_coords[z_coords == 0] = np.mean(z_coords)
 			#z_coords = z_coords
 
-			x_coords = np.append(x_coords, np.array([hand_landmarks.landmark[i].x for i in range(21)]))
-			y_coords = np.append(y_coords, np.array([hand_landmarks.landmark[i].y for i in range(21)]))
-			z_coords = np.append(z_coords, np.array([hand_landmarks.landmark[i].z for i in range(21)]))
-
-			# set up linear system
-			ones = np.repeat(1, len(x_coords))
-			A = np.concatenate((x_coords[:,np.newaxis], y_coords[:,np.newaxis], ones[:,np.newaxis]),axis=1)
-			b = z_coords
-			plane_coeffs, residual, rnk, s = lstsq(A, b)
-
-			fig = plt.figure()
-			ax = fig.add_subplot(111, projection='3d')
-			ax.scatter(x_coords, y_coords, z_coords, color='g')
-
-			X,Y = np.meshgrid(x_coords, y_coords)
-			Z = plane_coeffs[0] * X + plane_coeffs[1] * Y + plane_coeffs[2]
-
-			best_fit_plane = np.array([X.flatten(), Y.flatten(), Z.flatten()])
-			centroid = np.mean(best_fit_plane, axis=1, keepdims=True)
-			svd = np.linalg.svd(best_fit_plane - centroid)
-			if base_axis1 is None:
-				base_axis1 = svd[0][:, -1]
-			normal_vector = svd[0][:, -1] #left singular vector
-			#normal_fn = lambda X,Y,Z: np.cross(np.array([X[1]-X[0], Y[1]-Y[0], Z[1]-Z[0]]), np.array([X[2]-X[0], Y[2]-Y[0], Z[2]-Z[0]]))
-
-			origin = centroid.flatten()
-			ax.quiver(origin[0], origin[1], origin[2], normal_vector[0], normal_vector[1], normal_vector[2])
-			if base_axis2 is None:
-				base_axis2 = np.array([hand_landmarks.landmark[12].x, hand_landmarks.landmark[12].y, hand_landmarks.landmark[12].z])
-			axes2 = np.array([hand_landmarks.landmark[12].x, hand_landmarks.landmark[12].y, hand_landmarks.landmark[12].z])
-			ax.quiver(origin[0], origin[1], origin[2], axes2[0], axes2[1], axes2[2])
-			cross_prod_fn = lambda vec1,vec2: np.cross(vec1, vec2)
-			if base_axis3 is None:
-				base_axis3 = cross_prod_fn(normal_vector, axes2)
-			axes3 = cross_prod_fn(normal_vector, axes2)
+			angle_1, angle_2, angle_3 = hand_orientation.get_angles(x_coords, y_coords, z_coords)
+			print("\n Angle 1:", angle_1)
+			print("\n Angle 2:", angle_2)
+			print("\n Angle 3:", angle_3)
+			print("\n\n")
 
 			os.system('clear')
 
-			angle_1 = np.arccos(np.dot(base_axis1-origin, normal_vector-origin) / (np.linalg.norm(base_axis1-origin) * np.linalg.norm(normal_vector-origin)))
-			print("\n Angle 1:", angle_1)
-			angle_2 = np.arccos(np.dot(base_axis2-origin, axes2-origin) / (np.linalg.norm(base_axis2-origin) * np.linalg.norm(axes2-origin)))
-			print("\n Angle 2:", angle_2)
-			angle_3 = np.arccos(np.dot(base_axis3-origin, axes3-origin) / (np.linalg.norm(base_axis3-origin) * np.linalg.norm(axes3-origin)))
-			print("\n Angle 3:", angle_3)
-
-			ax.quiver(origin[0], origin[1], origin[2], axes3[0], axes3[1], axes3[2])
-			ax.plot_surface(X, Y, Z)
-			ax.plot(x_coords, y_coords, z_coords)
-			set_axes_equal(ax)
-			#plt.show()
 
 		if gesture:
 			print(gesture)
