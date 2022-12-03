@@ -1,0 +1,28 @@
+<launch>
+  
+  <!-- Manager node. -->
+  <node name="manager"
+        pkg="drone_106a"
+        type="manager.py">
+  </node>
+
+  <!-- Vision node. -->
+  <node name="vision"
+        pkg="drone_106a"
+        type="vision.py"
+	output="screen">
+  </node>
+  
+  <!-- Drone Driver node. -->
+  <node name="driver"
+        pkg="drone_106a"
+        type="driver.py">
+  </node>
+
+  <!-- Controller node. -->
+  <node name="controller"
+        pkg="drone_106a"
+        type="controller.py">
+  </node>
+
+</launch>

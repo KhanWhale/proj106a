@@ -1,0 +1,8 @@
+prefix=/home/raghavg/proj106a/ros_ws/devel
+
+Name: drone_106a
+Description: Description of drone_106a
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
