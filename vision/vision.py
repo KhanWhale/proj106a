@@ -1,3 +1,4 @@
+# usr/bin/env python3
 import os
 import sys
 import time
@@ -44,6 +45,8 @@ align_to = rs.stream.color
 align = rs.align(align_to)
 
 hand_detection.init()
+hand_orientation.init()
+print("init done")
 
 # FPS calculation initialization
 start_time = time.time()

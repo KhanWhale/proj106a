@@ -2,7 +2,18 @@ from scipy.linalg import lstsq
 import matplotlib.pyplot as plt
 import numpy as np
 from graph import *
+
+
 base_axis1, base_axis2, base_axis3 = None, None, None
+
+def init():
+    global base_axis1
+    base_axis1 = None
+    global base_axis2
+    base_axis2 = None
+    global base_axis3
+    base_axis3 = None
+
 
 def get_angles(x_coords, y_coords, z_coords):
     # set up linear system
@@ -18,6 +29,7 @@ def get_angles(x_coords, y_coords, z_coords):
     best_fit_plane = np.array([X.flatten(), Y.flatten(), Z.flatten()])
     centroid = np.mean(best_fit_plane, axis=1, keepdims=True)
     svd = np.linalg.svd(best_fit_plane - centroid)
+    print(base_axis1)
     if base_axis1 is None:
         base_axis1 = svd[0][:, -1]
     normal_vector = svd[0][:, -1] #left singular vector

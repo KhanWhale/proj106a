@@ -1,2 +1,0 @@
-drone_106a
--DCATKIN_DEVEL_PREFIX=/home/raghavg/proj106a/ros_ws/devel -DCMAKE_INSTALL_PREFIX=/home/raghavg/proj106a/ros_ws/install -G Unix Makefiles
