@@ -17,7 +17,7 @@ import hand_orientation
 from graph import *
 import rospy
 from drone_106a.msg import handState
-handstate_msg = handState()
+from drone_106a.srv import startupCheck
 
 pipeline = rs.pipeline()
 config = rs.config()
@@ -61,7 +61,19 @@ num_frames = 0
 fps = 0
 base_frame = False
 
-pub = rospy.Publisher('vision', handState, queue_size=10)
+rospy.init_node('vision_node', anonymous=True)
+pub = rospy.Publisher('hand_state', handState, queue_size=5)
+handstate_msg = handState()
+
+"""rospy.wait_for_service('vision-manager-startup')
+try:
+	srvPrxy = rospy.ServiceProxy('vision-manager-startup', startupCheck)
+	ack = srvPrxy(True)
+
+	if not ack:
+		print("Vision received ack = FALSE")
+except rospy.ServiceException as e:
+	print(f"Vision startup service failed: {e}")"""
 
 try:
 	while True:
@@ -116,16 +128,15 @@ try:
 			print("\n Mean Depth:", mean_depth)
 			print("\n\n")
 
-			handstate_msg.roll = angle_3
+			handstate_msg.roll = angle_1
 			handstate_msg.pitch = angle_2
-			handstate_msg.yaw = angle_1
+			handstate_msg.yaw = angle_3
 			handstate_msg.height = mean_depth
-			pub.publish(handState)
-
+			pub.publish(handstate_msg)
 
 		if gesture:
 			print(gesture)
-		  
+		
 		num_frames += 1
 		if (time.time() - start_time) > fps_calc_window:
 			fps = num_frames / fps_calc_window
@@ -133,7 +144,7 @@ try:
 			start_time = time.time()        
 
 		#print(f"FPS: {fps}")
-                #os.system('clear')
+				#os.system('clear')
 		# Flip the image horizontally for a selfie-view display.
 		flipped = cv2.flip(processed_img, 1)
 		cv2.imshow('MediaPipe Hands', flipped)

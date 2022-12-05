@@ -12,21 +12,20 @@ import sys
 import time
 import rospy
 from std_msgs.msg import String
-from drone_106a.msg import droneCommand
 
 # GLOBALS
 HOST_ADDR = ("", 9000)
 TELLO_ADDR = ("192.168.10.1", 8889)
-COMMAND_COMPLETE = False
-RC_COMMAND = False
+TELLO_SOCKET = None
+CONTROLLER_READY = False
 
 
-def recv(sock):  # receive data
-    respPublisher = rospy.Publisher("droneResp", String)
+def recv():  # receive data
+    respPublisher = rospy.Publisher("droneResp", String, queue_size=10)
     count = 0
     while True:
         try:
-            data, server = sock.recvfrom(1518)
+            data, server = TELLO_SOCKET.recvfrom(1518)
             data = data.decode(encoding="utf-8")
             if data:  # Received either OK or numeric value, i.e. command complete
                 COMMAND_COMPLETE = True
@@ -37,30 +36,50 @@ def recv(sock):  # receive data
             break
 
 
-def issue_command(command, callback_args):
-    sock = callback_args[0]
+def issue_command(command):
     command = command.encode(encoding="utf-8")
-    bytes_sent = sock.sendto(command, TELLO_ADDR)
+    bytes_sent = TELLO_SOCKET.sendto(command, TELLO_ADDR)
     print(f"Sent {bytes_sent} to Tello")
     return
 
+def controller_command(command):
+    CONTROLLER_READY = True
+    command = command.encode(encoding="utf-8")
+    bytes_sent = TELLO_SOCKET.sendto(command, TELLO_ADDR)
+    print(f"Sent {bytes_sent} to Tello")
+    return
+
+def cleanup():
+    issue_command('land')
+    issue_command('command')
+    TELLO_SOCKET.close()
+    return
 
 if __name__ == "__main__":
     print("driver")
+    rospy.init_node('driver_node')
 
-    # STEP 1: BIND SOCKET
-    tello_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    tello_socket.bind(HOST_ADDR)
+    #OPEN & BIND SOCKET
+    TELLO_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    TELLO_SOCKET.bind(HOST_ADDR)
 
-    # STEP 2: Setup a thread to receive the OK?
+    #Setup a thread to receive the OK?
     recvThread = threading.Thread(target=recv)
     recvThread.start()
 
-    # STEP 3: have a command issuing loop
-    # 3a - enter command mode
-    tello_socket.sendto("command".encode(encoding="utf-8"))  # enter command mode
+    # Put the tello in commander mode
+    issue_command('command', TELLO_SOCKET)
+
+    #set up the subscriber with the relevant socket
     command_sub = rospy.Subscriber(
-        "droneCommand", droneCommand, callback=issue_command, callback_args=[tello_socket]
+        "droneCommand", String, callback=controller_command
     )
-    tello_socket.sendto("command".encode(encoding="utf-8"))  # exit command mode
-    tello_socket.close()
+
+    while not CONTROLLER_READY: #haven't received first command
+            issue_command('battery?')
+            time.sleep(7)
+
+    try: 
+        rospy.spin()
+    except (rospy.exceptions.ROSException, KeyboardInterrupt) as e:
+        cleanup()
