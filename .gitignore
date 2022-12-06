@@ -2,3 +2,5 @@
 __pycache__
 .DS_Store
 .vscode
+ros_ws/build
+ros_ws/devel

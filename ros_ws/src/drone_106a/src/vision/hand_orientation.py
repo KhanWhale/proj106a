@@ -52,9 +52,9 @@ def get_angles(x_coords, y_coords, z_coords):
         angle_3 = -angle_3
 
 
-    coords = [x_coords, y_coords, z_coords]
-    axes = [normal_vector, axes2, axes3]
-    plane_coords = [X, Y, Z]
+    #coords = [x_coords, y_coords, z_coords]
+    #axes = [normal_vector, axes2, axes3]
+    #plane_coords = [X, Y, Z]
     #graph_hand(coords, origin, axes)
 
-    return angle_1*(180/np.pi), angle_2*(180/np.pi), angle_3*(180/np.pi)
+    return int(angle_1*(180/np.pi)), int(angle_2*(180/np.pi)), int(angle_3*(180/np.pi))
