@@ -33,7 +33,7 @@ def get_angles(x_coords, y_coords, z_coords):
         base_axis2 = np.array([x_coords[12], y_coords[12], z_coords[12]])
     axes2 = np.array([x_coords[12], y_coords[12], z_coords[12]])
     
-    cross_prod_fn = lambda vec1,vec2: np.cross(vec1, vec2)
+    cross_prod_fn = lambda u,v: np.cross(u, v)
     if base_axis3 is None:
         base_axis3 = cross_prod_fn(normal_vector, axes2)
     axes3 = cross_prod_fn(normal_vector, axes2)
@@ -50,7 +50,6 @@ def get_angles(x_coords, y_coords, z_coords):
     cross3 = cross_prod_fn(base_axis3, axes3)
     if np.dot(normal_vector, cross3) < 0:
         angle_3 = -angle_3
-
 
     #coords = [x_coords, y_coords, z_coords]
     #axes = [normal_vector, axes2, axes3]

@@ -83,9 +83,9 @@ with mp_hands.Hands(
             b = z_coords
             plane_coeffs, residual, rnk, s = lstsq(A, b)
 
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-            ax.scatter(x_coords, y_coords, z_coords, color='g')
+            #fig = plt.figure()
+            #ax = fig.add_subplot(111, projection='3d')
+            #ax.scatter(x_coords, y_coords, z_coords, color='g')
 
             X,Y = np.meshgrid(x_coords, y_coords)
             Z = plane_coeffs[0] * X + plane_coeffs[1] * Y + plane_coeffs[2]
@@ -99,26 +99,38 @@ with mp_hands.Hands(
             #normal_fn = lambda X,Y,Z: np.cross(np.array([X[1]-X[0], Y[1]-Y[0], Z[1]-Z[0]]), np.array([X[2]-X[0], Y[2]-Y[0], Z[2]-Z[0]]))
 
             origin = centroid.flatten()
-            ax.quiver(origin[0], origin[1], origin[2], normal_vector[0], normal_vector[1], normal_vector[2])
+            #ax.quiver(origin[0], origin[1], origin[2], normal_vector[0], normal_vector[1], normal_vector[2])
             if base_axis2 is None:
               base_axis2 = np.array([hand_landmarks.landmark[12].x, hand_landmarks.landmark[12].y, hand_landmarks.landmark[12].z])
             axes2 = np.array([hand_landmarks.landmark[12].x, hand_landmarks.landmark[12].y, hand_landmarks.landmark[12].z])
-            ax.quiver(origin[0], origin[1], origin[2], axes2[0], axes2[1], axes2[2])
+            #ax.quiver(origin[0], origin[1], origin[2], axes2[0], axes2[1], axes2[2])
             cross_prod_fn = lambda vec1,vec2: np.cross(vec1, vec2)
             if base_axis3 is None:
               base_axis3 = cross_prod_fn(normal_vector, axes2)
             axes3 = cross_prod_fn(normal_vector, axes2)
 
             angle_1 = np.arccos(np.dot(base_axis1-origin, normal_vector-origin) / (np.linalg.norm(base_axis1-origin) * np.linalg.norm(normal_vector-origin)))
-            print("\n Angle 1:", angle_1)
+            #angle_1 = np.arctan2(np.linalg.norm(cross_prod_fn(normal_vector-origin, base_axis1-origin)), (np.dot(base_axis1-origin, normal_vector-origin)))
+            cross1 = cross_prod_fn(base_axis1, normal_vector)
+            if np.dot(cross1, axes2) < 0:
+              angle_1 = -angle_1
+            print("\n Angle 1:", angle_1*(180/np.pi))
             angle_2 = np.arccos(np.dot(base_axis2-origin, axes2-origin) / (np.linalg.norm(base_axis2-origin) * np.linalg.norm(axes2-origin)))
-            print("\n Angle 2:", angle_2)
+            #angle_2 = np.arctan2(np.linalg.norm(cross_prod_fn(axes2-origin, base_axis2-origin)), (np.dot(base_axis2-origin, axes2-origin)))
+            cross2 = cross_prod_fn(base_axis2, axes2)
+            if np.dot(normal_vector, cross2) < 0:
+              angle_2 = -angle_2
+            print("\n Angle 2:", angle_2*(180/np.pi))
             angle_3 = np.arccos(np.dot(base_axis3-origin, axes3-origin) / (np.linalg.norm(base_axis3-origin) * np.linalg.norm(axes3-origin)))
-            print("\n Angle 3:", angle_3)
+            #angle_3 = np.arctan2(np.linalg.norm(cross_prod_fn(axes3-origin, base_axis3-origin)), (np.dot(base_axis3-origin, axes3-origin)))
+            cross3 = cross_prod_fn(base_axis3, axes3)
+            if np.dot(normal_vector, cross3) < 0:
+              angle_3 = -angle_3
+            print("\n Angle 3:", angle_3*(180/np.pi))
 
-            ax.quiver(origin[0], origin[1], origin[2], axes3[0], axes3[1], axes3[2])
-            ax.plot_surface(X, Y, Z)
-            set_axes_equal(ax)
+            #ax.quiver(origin[0], origin[1], origin[2], axes3[0], axes3[1], axes3[2])
+            #ax.plot_surface(X, Y, Z)
+            #set_axes_equal(ax)
             #plt.show()
 
 
