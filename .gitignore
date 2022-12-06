@@ -1,3 +1,4 @@
 106a-venv/
 __pycache__
 .DS_Store
+.vscode
