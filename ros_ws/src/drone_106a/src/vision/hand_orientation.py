@@ -39,8 +39,17 @@ def get_angles(x_coords, y_coords, z_coords):
     axes3 = cross_prod_fn(normal_vector, axes2)
 
     angle_1 = np.arccos(np.dot(base_axis1-origin, normal_vector-origin) / (np.linalg.norm(base_axis1-origin) * np.linalg.norm(normal_vector-origin)))
+    cross1 = cross_prod_fn(base_axis1, normal_vector)
+    if np.dot(cross1, axes2) < 0:
+        angle_1 = -angle_1
     angle_2 = np.arccos(np.dot(base_axis2-origin, axes2-origin) / (np.linalg.norm(base_axis2-origin) * np.linalg.norm(axes2-origin)))
+    cross2 = cross_prod_fn(base_axis2, axes2)
+    if np.dot(normal_vector, cross2) < 0:
+        angle_2 = -angle_2
     angle_3 = np.arccos(np.dot(base_axis3-origin, axes3-origin) / (np.linalg.norm(base_axis3-origin) * np.linalg.norm(axes3-origin)))
+    cross3 = cross_prod_fn(base_axis3, axes3)
+    if np.dot(normal_vector, cross3) < 0:
+        angle_3 = -angle_3
 
 
     coords = [x_coords, y_coords, z_coords]
