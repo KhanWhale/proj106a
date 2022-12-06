@@ -18,7 +18,7 @@ mp_hands = mp.solutions.hands
 hands = None
 
 def process(image):
-	image_height, image_width, _ = image.shape
+	#image_height, image_width, _ = image.shape
 
 	# To improve performance, optionally mark the image as not writeable to
 	# pass by reference.
