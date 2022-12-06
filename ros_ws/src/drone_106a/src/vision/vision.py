@@ -132,6 +132,7 @@ try:
 			handstate_msg.pitch = angle_2
 			handstate_msg.yaw = angle_3
 			handstate_msg.height = mean_depth
+			handstate_msg.gesture = gesture
 			pub.publish(handstate_msg)
 
 		if gesture:
