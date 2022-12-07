@@ -17,21 +17,23 @@ from std_msgs.msg import String, Float64, Time, Int32
 # GLOBALS
 HOST_ADDR = ("", 9000)
 TELLO_ADDR = ("192.168.10.1", 8889)
-TELLO_SOCKET = None
-CONTROLLER_READY = False
-COMMAND_COMPLETE = False
-LISTENER_SOCKET = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-LISTENER_SOCKET.bind(('', 9001))
+tello_socket = None
+controller_ready = False
+command_complete = False
+# LISTENER_SOCKET = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+# LISTENER_SOCKET.bind(('', 9001))
 
 def recv():  # receive data
+	global command_complete
 	respPublisher = rospy.Publisher("droneResp", String, queue_size=10)
 	count = 0
 	while True:
 		try:
-			data, server = LISTENER_SOCKET.recvfrom(1024)
+			# data, server = LISTENER_SOCKET.recvfrom(1024)
+			data, server = tello_socket.recvfrom(1024)
 			data = data.decode(encoding="utf-8")
-			if data:  # Received either OK or numeric value, i.e. command complete
-				COMMAND_COMPLETE = True
+			if data:  # TODO: TEST THAT => Received either OK or numeric value, i.e. command complete
+				command_complete = True
 				respPublisher.publish(data)
 				print(data)
 		except Exception:
@@ -41,44 +43,51 @@ def recv():  # receive data
 
 def issue_command(command):
 	command = command.encode(encoding="utf-8")
-	bytes_sent = TELLO_SOCKET.sendto(command, TELLO_ADDR)
+	bytes_sent = tello_socket.sendto(command, TELLO_ADDR)
 	print(f"Sent {bytes_sent} to Tello")
 	return
 
 def controller_command(command):
-	CONTROLLER_READY = True
+	global controller_ready
+	controller_ready = True
 	command = command.encode(encoding="utf-8")
-	bytes_sent = TELLO_SOCKET.sendto(command, TELLO_ADDR)
+	bytes_sent = tello_socket.sendto(command, TELLO_ADDR)
 	print(f"Sent {bytes_sent} to Tello")
 	return
 
 def cleanup():
 	# issue_command('land')
 	issue_command('command')
-	TELLO_SOCKET.close()
+	tello_socket.close()
 	return
+
+def startup():
+	global tello_socket
+
+	#OPEN & BIND SOCKET
+	tello_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	tello_socket.bind(HOST_ADDR)
+
 
 if __name__ == "__main__":
 	print("driver")
 	rospy.init_node('driver_node', anonymous = True)
 
-	#OPEN & BIND SOCKET
-	TELLO_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	TELLO_SOCKET.bind(HOST_ADDR)
+	startup()
 
 	#Setup a thread to receive the OK?
 	recvThread = threading.Thread(target=recv)
 	recvThread.start()
 
-
-	# Put the tello in commander mode
-	# issue_command('command')
-
 	curr_time = time.time()
 	while time.time() - curr_time < 8:
-		if COMMAND_COMPLETE:
-			print("HELLO")
+		# Put the tello in commander mode
+		issue_command('command')
+		time.sleep(0.5)
+		print(f'startup command status {command_complete}')
+		if command_complete:
 			break
+
 	try:
 		rospy.wait_for_service('driver_manager_startup')
 		srvPrxy = rospy.ServiceProxy('driver_manager_startup', startupCheck)
@@ -91,10 +100,10 @@ if __name__ == "__main__":
 		cleanup()
 		exit(2)
 	rospy.loginfo('yo')
-	#set up the subscriber with the relevant socket
-	# command_sub = rospy.Subscriber(
-	# 	"droneCommand", String, callback=controller_command
-	# )
+	# set up the subscriber with the relevant socket
+	command_sub = rospy.Subscriber(
+		"droneCommand", String, callback=controller_command
+	)
 	tofPublisher = rospy.Publisher("droneTof", String, queue_size=10, latch=True)
 	tofPublisher.publish(str(rospy.Time.now()))
 	rospy.loginfo(f"{time.time()}")
