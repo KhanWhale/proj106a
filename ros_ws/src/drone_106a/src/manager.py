@@ -28,6 +28,7 @@ def success():
 def driver_manager_startup(req):
     global driver_ready
     driver_ready = req.ready
+    print("driver ready")
     while True:
         if not waiting():
             break
@@ -36,6 +37,7 @@ def driver_manager_startup(req):
 def controller_manager_startup(req):
     global controller_ready
     controller_ready = req.ready
+    print("controller ready")
     while True:
         if not waiting():
             break
@@ -44,6 +46,7 @@ def controller_manager_startup(req):
 def vision_manager_startup(req):
     global vision_ready
     vision_ready = req.ready
+    print("vision ready")
     while True:
         if not waiting():
             break
@@ -52,8 +55,8 @@ def vision_manager_startup(req):
 if __name__ == "__main__":
     rospy.init_node('manager_server')
     rospy.loginfo("HI")
-    s = rospy.Service('driver_manager_startup', startupCheck, driver_manager_startup)
-    s = rospy.Service('controller_manager_startup', startupCheck, controller_manager_startup)
-    s = rospy.Service('vision_manager_startup', startupCheck, vision_manager_startup)
+    s1 = rospy.Service('driver_manager_startup', startupCheck, driver_manager_startup)
+    s2 = rospy.Service('controller_manager_startup', startupCheck, controller_manager_startup)
+    s3 = rospy.Service('vision_manager_startup', startupCheck, vision_manager_startup)
     print("manager_startup service ready")
     rospy.spin()
