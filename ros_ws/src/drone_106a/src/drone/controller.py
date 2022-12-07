@@ -33,6 +33,7 @@ UDPServerSocket = None
 # DEFAULTINPUT = {'roll': 0, 'pitch': 0, 'yaw': 0, 'h': 30}
 prevInput = None # DEFAULTINPUT
 commandPublisher = None
+state = None
 
 controllerObj = None
 
@@ -110,43 +111,74 @@ def parser(msg):
             dict[splits[0]] = float(splits[1])
     return dict
 
-# UDP state receive loop
-def mainLoop():
+def stateLoop():
+    rospy.loginfo("entered stateLoop")
 
-    rospy.loginfo("entered mainLoop")
-
-    global prevInput
+    global state
 
     while True:
         stateString = getSingleDatagram()
-        # parse string and populate stateDict
-        stateDict = parser(stateString)
-        # commandPublisher.publish('rc 0 0 0 0')
+        state = parser(stateString)
 
-        myCurrInput = None
-        global q
-        if q.empty():
-            myCurrInput = prevInput
-        else:
-            myCurrInput = q.get()
+def mainCallback(hs):
 
-        rospy.loginfo(f'myCurrInput = {myCurrInput}')
+    recvInput = {'roll': hs.roll, 'pitch': hs.pitch, 'yaw': hs.yaw, 'h': hs.height, 'gesture': hs.gesture}
 
-        if myCurrInput:
+    rospy.loginfo(f'recvInput = {recvInput}')
 
-            commandString = computeControl(myCurrInput, stateDict)
+    if recvInput and state:
 
-            prevInput = myCurrInput
+        commandString = computeControl(recvInput, state.copy())
         
-        else:
+    else:
 
-            commandString = "rc 0 0 0 0"
+        rospy.loginfo(f"state = {state}")
 
-        rospy.loginfo(f"commandString = {commandString}")
+        commandString = "rc 0 0 0 0"
 
-        # publish on topic droneCommand
-        commandPublisher.publish(commandString) 
-        # commandPublisher.publish('rc 0 0 0 0')
+    rospy.loginfo(f"commandString = {commandString}")
+
+    # publish on topic droneCommand
+    commandPublisher.publish(commandString) 
+    # commandPublisher.publish('rc 0 0 0 0')
+
+# # UDP state receive loop
+# def mainLoop():
+
+#     rospy.loginfo("entered mainLoop")
+
+#     global prevInput
+
+#     while True:
+#         stateString = getSingleDatagram()
+#         # parse string and populate stateDict
+#         stateDict = parser(stateString)
+#         # commandPublisher.publish('rc 0 0 0 0')
+
+#         myCurrInput = None
+#         global q
+#         if q.empty():
+#             myCurrInput = prevInput
+#         else:
+#             myCurrInput = q.get()
+
+#         rospy.loginfo(f'myCurrInput = {myCurrInput}')
+
+#         if myCurrInput:
+
+#             commandString = computeControl(myCurrInput, stateDict)
+
+#             prevInput = myCurrInput
+        
+#         else:
+
+#             commandString = "rc 0 0 0 0"
+
+#         rospy.loginfo(f"commandString = {commandString}")
+
+#         # publish on topic droneCommand
+#         commandPublisher.publish(commandString) 
+#         # commandPublisher.publish('rc 0 0 0 0')
 
 
 # TODO main control fn
@@ -157,31 +189,31 @@ def computeControl(input, state):
 
     # return CMD
 
-    return controllerObj.control_wrapper(input, state, log=True)
+    return controllerObj.control_wrapper(input, state, log=False)
 
-def reCVcallback(hs):
+# def reCVcallback(hs):
 
-    global currInput
+#     global currInput
     
-    recvInput = {'roll': hs.roll, 'pitch': hs.pitch, 'yaw': hs.yaw, 'h': hs.height, 'gesture': hs.gesture}
+#     recvInput = {'roll': hs.roll, 'pitch': hs.pitch, 'yaw': hs.yaw, 'h': hs.height, 'gesture': hs.gesture}
 
-    # rospy.loginfo(f"CV gave {str(recvInput)}")
+#     # rospy.loginfo(f"CV gave {str(recvInput)}")
 
-    rospy.loginfo("putting into queue")
+#     rospy.loginfo("putting into queue")
 
-    q.put(recvInput)
+#     q.put(recvInput)
 
 # CV input updater fn
-def receiveCV():
-    rospy.loginfo("Entered recv handState loop")
-    # listen to topic handState
-    rospy.Subscriber("handState", handState, reCVcallback)
+# def receiveCV():
+#     rospy.loginfo("Entered recv handState loop")
+#     # listen to topic handState
+#     rospy.Subscriber("handState", handState, reCVcallback)
 
-    try:
-        rospy.spin()
-    except (rospy.exceptions.ROSException, KeyboardInterrupt) as e:
-        UDPServerSocket.close()
-        exit(0)
+#     try:
+#         rospy.spin()
+#     except (rospy.exceptions.ROSException, KeyboardInterrupt) as e:
+#         UDPServerSocket.close()
+#         exit(0)
 
 if __name__ == "__main__":
     
@@ -198,14 +230,18 @@ if __name__ == "__main__":
     # recvCVThread.start()
 
 
+    # # create thread to loop on UDPServerSocket
+    # loopThread = Thread(target=mainLoop)
+    # loopThread.start() 
+
     # create thread to loop on UDPServerSocket
-    loopThread = Thread(target=mainLoop)
+    loopThread = Thread(target=stateLoop)
     loopThread.start() 
 
     rospy.loginfo("Entered recv handState loop")    
 
     # listen to topic handState
-    rospy.Subscriber("handState", handState, reCVcallback)
+    rospy.Subscriber("handState", handState, mainCallback)
 
     try:
         rospy.spin()

@@ -103,6 +103,8 @@ class controllerClass(object):
         # Get the input for this time
         u = self.step_control(scaledInput, state, t)
 
+        print(u)
+
         controlString = f'rc {u[0]} {u[1]} {u[3]} {u[2]}'
 
         # TODO: figure out how to reuse their plotting infra => we can just have 4 "limbs"
@@ -156,23 +158,24 @@ class controllerClass(object):
         u: 4x' ndarray of inputs a b c d in "rc a b c d" command
         
         """
-        rospy.loginfo(state)
+        print(f'state = {state}')
+        rospy.loginfo(f'state = {state}')
+        print(f'input = {input}')
+        rospy.loginfo(f'input = {input}')
+
         current_position = np.array([state[key] for key in ['roll', 'pitch', 'yaw', 'h']])
-        # current_velocity = np.array([self._limb.joint_velocities()[joint_name] for joint_name in self._path.joint_trajectory.joint_names])
 
         target_position = np.array([input[key] for key in ['roll', 'pitch', 'yaw', 'h']])
-        target_velocity = np.zeros((4, 1))
 
         # For Plotting
         self._times.append(t)
         self._actual_positions.append(current_position)
-        # self._actual_velocities.append(current_velocity)
         self._target_positions.append(target_position)
-        self._target_velocities.append(target_velocity)
-
 
         # Error Term
         error = target_position - current_position
+
+        print(f"error = {error}")
 
         # Integral Term
         # Value if below threshold
@@ -184,8 +187,13 @@ class controllerClass(object):
         
         # Derivative Term
         dt = t - self._LastTime
+        
+        print(f"LastError = {self._LastError}")
+        print(f"dt = {dt}")
+        
         # We implement a moving average filter to smooth the derivative
         curr_derivative = (error - self._LastError) / dt
+        
         self._ring_buff.append(curr_derivative)
         ed = np.mean(self._ring_buff)
 
@@ -199,8 +207,20 @@ class controllerClass(object):
         # self._Kp
         # and so on. This is better practice than hard-coding
 
-        u = self._Kp*error + self._Kd*ed # + self._Ki*self._IntError
+        u = self._Kp*error + self._Kd*ed  + self._Ki*self._IntError
 
         ###################### YOUR CODE END ##########################
 
         return u
+
+
+if __name__ == "__main__":
+
+    rospy.init_node('controllerClass', anonymous=True)
+
+    print("controllerClass")
+
+    try:
+        rospy.spin()
+    except (rospy.exceptions.ROSException, KeyboardInterrupt) as e:
+        exit(0)
