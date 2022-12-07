@@ -160,7 +160,7 @@ class controllerClass(object):
         current_position = np.array([state[key] for key in ['roll', 'pitch', 'yaw', 'h']])
         # current_velocity = np.array([self._limb.joint_velocities()[joint_name] for joint_name in self._path.joint_trajectory.joint_names])
 
-        target_position = np.array([input[key] for key in ['roll', 'pitch', 'yaw', 'height']])
+        target_position = np.array([input[key] for key in ['roll', 'pitch', 'yaw', 'h']])
         target_velocity = np.zeros((4, 1))
 
         # For Plotting
@@ -179,8 +179,8 @@ class controllerClass(object):
         potentialIntegralValue = self._IntError + error
         assignmentCondition = self._Kth > potentialIntegralValue 
 
-        self._IntError[assignmentCondition] = potentialIntegralValue
-        self._IntError[~assignmentCondition] = self._Kth
+        self._IntError[assignmentCondition] = potentialIntegralValue[assignmentCondition]
+        self._IntError[~assignmentCondition] = self._Kth[~assignmentCondition]
         
         # Derivative Term
         dt = t - self._LastTime

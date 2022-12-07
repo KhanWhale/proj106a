@@ -102,8 +102,8 @@ def parser(msg):
     dict = {}
     line = msg.split(";")
     for pair in line:
-        if (len(pair) == 2):
-            splits = pair.split(":")
+        splits = pair.split(":")
+        if (len(splits) == 2):
             dict[splits[0]] = float(splits[1])
     return dict
 
@@ -132,13 +132,16 @@ def mainLoop():
             myCurrInput = prevInput
 
         rospy.loginfo(myCurrInput)
-        commandString = computeControl(myCurrInput, stateDict)
 
-        # publish on topic droneCommand
-        commandPublisher.publish(commandString) 
-        # commandPublisher.publish('rc 0 0 0 0')
-        
-        prevInput = myCurrInput
+        if myCurrInput:
+
+            commandString = computeControl(myCurrInput, stateDict)
+
+            # publish on topic droneCommand
+            commandPublisher.publish(commandString) 
+            # commandPublisher.publish('rc 0 0 0 0')
+            
+            prevInput = myCurrInput
 
 
 # TODO main control fn
