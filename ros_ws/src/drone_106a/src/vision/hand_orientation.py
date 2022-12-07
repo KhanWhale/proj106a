@@ -55,5 +55,7 @@ def get_angles(x_coords, y_coords, z_coords):
     #axes = [normal_vector, axes2, axes3]
     #plane_coords = [X, Y, Z]
     #graph_hand(coords, origin, axes)
-
+    angle_1 = 0 if np.isnan(angle_1) else angle_1
+    angle_2 = 0 if np.isnan(angle_2) else angle_2
+    angle_3 = 0 if np.isnan(angle_3) else angle_3
     return int(angle_1*(180/np.pi)), int(angle_2*(180/np.pi)), int(angle_3*(180/np.pi))
