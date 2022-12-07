@@ -3,6 +3,7 @@
 import rospy
 import sys
 import numpy as np
+import time
 import itertools
 from collections import deque
 
@@ -69,6 +70,9 @@ class controllerClass(object):
         self._target_positions = list()
         self._target_velocities = list()
 
+    def set_start(self, time):
+        self.startTime = float(str(time)[7:-1])
+        return
     def control_wrapper(self, input, state, log=True):
         """
         Return command string for given input and state dicts
@@ -87,16 +91,14 @@ class controllerClass(object):
         “d” = YAW = yaw (-100-100)
 
         """
-
-        t = (rospy.Time.now() - startTime).to_sec()
-
+        t = time.time() - self.startTime
         # TODO: Once gestures have been passed, populate input dict correctly in controller.py and check here to decide command based on gesture 
 
         controlString = None
-
+        
         scaledInput = input.copy()
 
-        scaledInput['height'] *= scaledInput['height'] * self._heightScale
+        scaledInput['h'] = scaledInput['h'] * self._heightScale
 
         # Get the input for this time
         u = self.step_control(scaledInput, state, t)
@@ -154,7 +156,7 @@ class controllerClass(object):
         u: 4x' ndarray of inputs a b c d in "rc a b c d" command
         
         """
-
+        rospy.loginfo(state)
         current_position = np.array([state[key] for key in ['roll', 'pitch', 'yaw', 'h']])
         # current_velocity = np.array([self._limb.joint_velocities()[joint_name] for joint_name in self._path.joint_trajectory.joint_names])
 

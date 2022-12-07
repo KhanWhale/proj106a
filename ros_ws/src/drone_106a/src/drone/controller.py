@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
-# Send req to controller-manager-startup with startupCheck.srv
+# Send req to manager_startup with startupCheck.srv
 # Listen on topic handState for changes in input
 # multithreaded
 # Send final command on topic droneCommand
 
 import rospy
 import socket
-from std_msgs.msg import String
+from std_msgs.msg import String, Time, Float64, Int32
 from threading import Thread, Lock
 from drone_106a.msg import handState
 from drone_106a.srv import startupCheck
-import controllerClass
+from controllerClass import controllerClass
 import numpy as np
 
 localIP     = "0.0.0.0"
@@ -20,6 +20,8 @@ bufferSize  = 1024
 
 # Create a datagram socket
 UDPServerSocket = None 
+destinationSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+
 
 # global state lock
 lock = Lock()
@@ -27,8 +29,8 @@ lock = Lock()
 currInput = None
 
 # controller prev state
-prevInput = None
-
+DEFAULTINPUT = {'roll': 0, 'pitch': 0, 'yaw': 0, 'h': 30}
+prevInput = DEFAULTINPUT
 commandPublisher = None
 
 controllerObj = None
@@ -37,9 +39,11 @@ def getSingleDatagram():
     
     bytesAddressPair = UDPServerSocket.recvfrom(bufferSize)
     message = bytesAddressPair[0]
+    destinationSocket.sendto(message, ('', 9001))
     message = message.decode()[: -2]
     address = str(bytesAddressPair[1])
     print(message)
+    rospy.loginfo('pls' + message)
     # print(address)
     return message
 
@@ -51,7 +55,9 @@ def droneBind():
     
     # Bind to address and ip
     UDPServerSocket.bind((localIP, statePort))
-    print("UDP server up and listening")
+    UDPServerSocket.sendto('command'.encode('utf-8'), ('192.168.10.1', 8889))
+
+    rospy.loginfo("UDP server up and listening")
 
     # TODO: Need timeout
     getSingleDatagram()
@@ -78,15 +84,22 @@ def startup():
     controllerObj = controllerClass(Kp, Kd, Ki, Kth, heightScale)
 
     # Call startup service
-    rospy.wait_for_service('controller-manager-startup')
+    rospy.wait_for_service('controller_manager_startup')
+    rospy.loginfo("UR MOM")
     try:
-        srvPrxy = rospy.ServiceProxy('controller-manager-startup', startupCheck)
+        srvPrxy = rospy.ServiceProxy('controller_manager_startup', startupCheck)
+        rospy.loginfo("UR MOM 1.5")
         ack = srvPrxy(True)
-
+        rospy.loginfo("UR MOM 2")
         if not ack:
             print("Controller received ack = FALSE")
     except rospy.ServiceException as e:
         print(f"Controller startup service failed: {e}")
+    
+    start = rospy.wait_for_message('droneTof', String)
+    rospy.loginfo(start)
+    rospy.loginfo('food')
+    controllerObj.set_start(start)
 
 def parser(msg):
     dict = {}
@@ -104,24 +117,30 @@ def mainLoop():
 
     while True:
         stateString = getSingleDatagram()
-        
+        rospy.loginfo("YEET" + stateString)
         # parse string and populate stateDict
         stateDict = parser(stateString)
+        commandPublisher.publish('rc 0 0 0 0')
 
-        myCurrInput = None
+        # myCurrInput = None
 
-        if lock.acquire(blocking = False):
-            myCurrInput = currInput
-            lock.release()
-        else:
-            myCurrInput = prevInput
+        # if lock.acquire(blocking = False):
+        #     if currInput is not None and currInput != {}:
+        #         myCurrInput = currInput
+        #     else:
+        #         myCurrInput = prevInput
+        #     lock.release()
+        # else:
+        #     myCurrInput = prevInput
 
-        commandString = computeControl(myCurrInput, stateDict)
+        # rospy.loginfo(myCurrInput)
+        # commandString = computeControl(myCurrInput, stateDict)
 
-        # publish on topic droneCommand
-        commandPublisher.publish(commandString) 
+        # # publish on topic droneCommand
+        # # commandPublisher.publish(commandString) 
+        # commandPublisher.publish('rc 0 0 0 0')
         
-        prevInput = myCurrInput
+        # prevInput = myCurrInput
 
 
 # TODO main control fn
@@ -138,7 +157,9 @@ def reCVcallback(hs):
 
     global currInput
     
-    recvInput = {'roll': hs.roll, 'pitch': hs.pitch, 'yaw': hs.yaw, 'height': hs.height}
+    recvInput = {'roll': hs.roll, 'pitch': hs.pitch, 'yaw': hs.yaw, 'h': hs.height}
+
+    rospy.loginfo(recvInput)
 
     lock.acquire()
     currInput = recvInput
@@ -155,7 +176,7 @@ if __name__ == "__main__":
 
     print("controller")
 
-    return # TODO: REMOVE WHEN READY
+    # return # TODO: REMOVE WHEN READY
 
     startup()    
 
@@ -163,7 +184,16 @@ if __name__ == "__main__":
     recvCVThread = Thread(target=receiveCV)
     recvCVThread.start()
 
+
     # create thread to loop on UDPServerSocket
     loopThread = Thread(target=mainLoop)
     loopThread.start() 
+
+    try:
+        rospy.spin()
+    except (rospy.exceptions.ROSException, KeyboardInterrupt) as e:
+        UDPServerSocket.close()
+        exit(0)
+    
+
 

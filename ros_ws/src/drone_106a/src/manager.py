@@ -14,10 +14,16 @@ controller_ready = None
 vision_ready = None
 
 def waiting():
+    global driver_ready
+    global controller_ready
+    global vision_ready
     return (driver_ready == None) or (controller_ready == None) or (vision_ready == None)
 
 def success():
-    return driver_ready and controller_ready and vision_ready
+    global driver_ready
+    global controller_ready
+    global vision_ready
+    return driver_ready and True and controller_ready and vision_ready
 
 def driver_manager_startup(req):
     global driver_ready
@@ -25,21 +31,29 @@ def driver_manager_startup(req):
     while True:
         if not waiting():
             break
-    return startupCheck(success())
+    return success()
 
+def controller_manager_startup(req):
+    global controller_ready
+    controller_ready = req.ready
+    while True:
+        if not waiting():
+            break
+    return success()
+
+def vision_manager_startup(req):
+    global vision_ready
+    vision_ready = req.ready
+    while True:
+        if not waiting():
+            break
+    return success()
 
 if __name__ == "__main__":
     rospy.init_node('manager_server')
-    s = rospy.Service('driver-manager-startup', startupCheck, driver_manager_startup)
-    print("driver-manager-startup service ready")
+    rospy.loginfo("HI")
+    s = rospy.Service('driver_manager_startup', startupCheck, driver_manager_startup)
+    s = rospy.Service('controller_manager_startup', startupCheck, controller_manager_startup)
+    s = rospy.Service('vision_manager_startup', startupCheck, vision_manager_startup)
+    print("manager_startup service ready")
     rospy.spin()
-
-
-# Example usage (need to modify) for testing
-# rospy.wait_for_service('add_two_ints')
-# try:
-#     add_two_ints = rospy.ServiceProxy('add_two_ints', AddTwoInts)
-#     resp1 = add_two_ints(x, y)
-#     return resp1.sum
-# except rospy.ServiceException as e:
-#     print("Service call failed: %s"%e)

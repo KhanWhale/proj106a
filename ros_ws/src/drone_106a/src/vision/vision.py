@@ -65,15 +65,17 @@ rospy.init_node('vision_node', anonymous=True)
 pub = rospy.Publisher('hand_state', handState, queue_size=5)
 handstate_msg = handState()
 
-"""rospy.wait_for_service('vision-manager-startup')
 try:
-	srvPrxy = rospy.ServiceProxy('vision-manager-startup', startupCheck)
+	rospy.wait_for_service('vision_manager_startup')
+	srvPrxy = rospy.ServiceProxy('vision_manager_startup', startupCheck)
 	ack = srvPrxy(True)
-
 	if not ack:
-		print("Vision received ack = FALSE")
+		pipeline.stop()
+		exit(1)
 except rospy.ServiceException as e:
-	print(f"Vision startup service failed: {e}")"""
+	print(f"Drone startup service failed: {e}")
+	pipeline.stop()
+	exit(2)
 
 try:
 	while True:
