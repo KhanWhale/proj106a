@@ -81,7 +81,7 @@ def startup():
     Kp = np.array([1.0, 1.0, 1.0, 1.0])
     Kd = np.array([1.0, 1.0, 1.0, 1.0])
     Ki = np.array([1.0, 1.0, 1.0, 1.0])
-    Kth = np.array([10, 10, 10, 10])
+    Kth = np.array([20, 20, 20, 20])
     heightScale = 1.0
 
     # set up controller object
@@ -99,8 +99,8 @@ def startup():
         print(f"Controller startup service failed: {e}")
     
     start_time = rospy.wait_for_message('droneTof', String)
-    rospy.loginfo(f'recevied start_time = {float(str(start_time)[7:-1])} ')
-    controllerObj.set_start(start_time)
+    rospy.loginfo(f'recevied start_time = {float(start_time.data)} ')
+    controllerObj.set_start(start_time.data)
 
 def parser(msg):
     dict = {}

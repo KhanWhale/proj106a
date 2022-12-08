@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
 import sys
@@ -6,6 +6,19 @@ import numpy as np
 import time
 import itertools
 from collections import deque
+
+SCALING_FACTOR = 20
+
+inpMap = {}
+
+inpMap['roll_max'] = 142.60744252895077
+inpMap['roll_min'] = -974.0248326479165
+inpMap['pitch_max'] = 48.54839867490042
+inpMap['pitch_min'] = -7134.662853191837
+inpMap['yaw_max'] = 31.20910636629924
+inpMap['yaw_min'] = -501.24346088775826
+inpMap['h_max'] = 205.17686522463777
+inpMap['h_min'] = -119.56328012410148
 
 # TODO: Consider using a rate if we're publishing to drone too quick - (don't expect this to be the case)
 # will have to decouple state update from control loop then (right now state update and control loop are basically one)
@@ -71,7 +84,7 @@ class controllerClass(object):
         self._target_velocities = list()
 
     def set_start(self, time):
-        self.startTime = float(str(time)[7:-1])
+        self.startTime = float(time)
         return
     def control_wrapper(self, input, state, log=True):
         """
@@ -98,14 +111,19 @@ class controllerClass(object):
         
         scaledInput = input.copy()
 
-        scaledInput['h'] = scaledInput['h'] * self._heightScale
+        for key in input.keys():
+            if key != 'gesture':
+                scaledInput[key] = SCALING_FACTOR * (max(-input[key]/inpMap[key + '_min'], -1) if input[key] < 0 else min(input[key]/inpMap[key + '_max'], 1))
+
+
+        scaledInput['h'] = scaledInput['h'] * self._heightScale / 10
 
         # Get the input for this time
         u = self.step_control(scaledInput, state, t)
 
         print(u)
 
-        controlString = f'rc {u[0]} {u[1]} {u[3]} {u[2]}'
+        controlString = f'rc {int(u[0])} {int(u[1])} {0} {0}'
 
         # TODO: figure out how to reuse their plotting infra => we can just have 4 "limbs"
 
@@ -186,6 +204,8 @@ class controllerClass(object):
         self._IntError[~assignmentCondition] = self._Kth[~assignmentCondition]
         
         # Derivative Term
+        rospy.loginfo(f"t : {t}")
+        rospy.loginfo(f"t : {self._LastTime}")
         dt = t - self._LastTime
         
         print(f"LastError = {self._LastError}")

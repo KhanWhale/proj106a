@@ -2,6 +2,7 @@ from scipy.linalg import lstsq
 import matplotlib.pyplot as plt
 import numpy as np
 from graph import *
+import rospy
 
 base_axis1, base_axis2, base_axis3 = None, None, None
 
@@ -37,16 +38,30 @@ def get_angles(x_coords, y_coords, z_coords):
     if base_axis3 is None:
         base_axis3 = cross_prod_fn(normal_vector, axes2)
     axes3 = cross_prod_fn(normal_vector, axes2)
-
-    angle_1 = np.arccos(np.dot(base_axis1-origin, normal_vector-origin) / (np.linalg.norm(base_axis1-origin) * np.linalg.norm(normal_vector-origin)))
+    try:
+        angle_1 = np.arccos(np.dot(base_axis1-origin, normal_vector-origin) / (np.linalg.norm(base_axis1-origin) * np.linalg.norm(normal_vector-origin)))
+    except: 
+        # rospy.loginfo('Invalid angle_1')
+        print('INvalid angle_1')
+        angle_1 = 0
     cross1 = cross_prod_fn(base_axis1, normal_vector)
     if np.dot(cross1, axes2) < 0:
         angle_1 = -angle_1
-    angle_2 = np.arccos(np.dot(base_axis2-origin, axes2-origin) / (np.linalg.norm(base_axis2-origin) * np.linalg.norm(axes2-origin)))
+    try:
+        angle_2 = np.arccos(np.dot(base_axis2-origin, axes2-origin) / (np.linalg.norm(base_axis2-origin) * np.linalg.norm(axes2-origin)))
+    except:
+        # rospy.loginfo('Invalid angle_2')
+        print('INvalid angle_2')
+        angle_2 = 0
     cross2 = cross_prod_fn(base_axis2, axes2)
     if np.dot(normal_vector, cross2) < 0:
         angle_2 = -angle_2
-    angle_3 = np.arccos(np.dot(base_axis3-origin, axes3-origin) / (np.linalg.norm(base_axis3-origin) * np.linalg.norm(axes3-origin)))
+    try:
+        angle_3 = np.arccos(np.dot(base_axis3-origin, axes3-origin) / (np.linalg.norm(base_axis3-origin) * np.linalg.norm(axes3-origin)))
+    except:
+        # rospy.loginfo('Invalid angle_3')
+        print('INvalid angle_3')
+        angle_3 = 0
     cross3 = cross_prod_fn(base_axis3, axes3)
     if np.dot(normal_vector, cross3) < 0:
         angle_3 = -angle_3

@@ -51,13 +51,14 @@ def controller_command(command):
 	global controller_ready
 	controller_ready = True
 	command = str(command.data)
+	print(command[3:])
 	command = command.encode(encoding="utf-8")
 	bytes_sent = tello_socket.sendto(command, TELLO_ADDR)
-	print(f"Sent {bytes_sent}: {command} to Tello")
+	# print(f"Sent {bytes_sent}: {command} to Tello")
 	return
 
 def cleanup():
-	issue_command('command')
+	issue_command('rc 0 0 0 0')
 	issue_command('land')
 	issue_command('command')
 	tello_socket.close()
@@ -107,8 +108,9 @@ if __name__ == "__main__":
 		"droneCommand", String, callback=controller_command
 	)
 	tofPublisher = rospy.Publisher("droneTof", String, queue_size=10, latch=True)
-	tofPublisher.publish(str(rospy.Time.now()))
+	tofPublisher.publish(str(time.time()))
 	rospy.loginfo(f"{time.time()}")
+	issue_command('rc 0 0 0 0')
 	issue_command('takeoff')
 	try: 
 		rospy.spin()

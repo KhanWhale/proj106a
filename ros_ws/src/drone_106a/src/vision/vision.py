@@ -66,6 +66,9 @@ pub = rospy.Publisher('handState', handState, queue_size=50)
 handstate_msg = handState()
 
 def visionLoop(breakOnHand):
+	rospy.loginfo(f"Break ON Hand : {breakOnHand}")
+	global base_frame, num_frames, start_time
+
 	try:
 		while True:
 			x_coords = np.array([])
@@ -148,25 +151,26 @@ def visionLoop(breakOnHand):
 				break
 
 	finally:
+		if not breakOnHand:
+			pipeline.stop()
+
+
+visionLoop(True)
+
+try:
+	rospy.wait_for_service('vision_manager_startup')
+	srvPrxy = rospy.ServiceProxy('vision_manager_startup', startupCheck)
+	ack = srvPrxy(True)
+	if not ack:
 		pipeline.stop()
+		exit(1)
+except rospy.ServiceException as e:
+	print(f"Drone startup service failed: {e}")
+	pipeline.stop()
+	exit(2)
 
-
-
+visionLoop(False)
 if __name__ == "__main__":
 	print("vision")
 
-	visionLoop(True)
-
-	try:
-		rospy.wait_for_service('vision_manager_startup')
-		srvPrxy = rospy.ServiceProxy('vision_manager_startup', startupCheck)
-		ack = srvPrxy(True)
-		if not ack:
-			pipeline.stop()
-			exit(1)
-	except rospy.ServiceException as e:
-		print(f"Drone startup service failed: {e}")
-		pipeline.stop()
-		exit(2)
-
-	visionLoop(False)
+	
