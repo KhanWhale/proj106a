@@ -111,19 +111,21 @@ class controllerClass(object):
         
         scaledInput = input.copy()
 
-        for key in input.keys():
-            if key != 'gesture':
-                scaledInput[key] = SCALING_FACTOR * (max(-input[key]/inpMap[key + '_min'], -1) if input[key] < 0 else min(input[key]/inpMap[key + '_max'], 1))
+        # for key in input.keys():
+            # if 'gesture' not in key:
+            #     scaledInput[key] = SCALING_FACTOR * (max(-input[key]/inpMap[key + '_min'], -1) if input[key] < 0 else min(input[key]/inpMap[key + '_max'], 1))
+        if scaledInput['gestureLeft'] != 0:
+            return 'land'
 
 
-        scaledInput['h'] = scaledInput['h'] * self._heightScale / 10
+        scaledInput['h'] = scaledInput['h'] * self._heightScale
 
         # Get the input for this time
         u = self.step_control(scaledInput, state, t)
 
         print(u)
 
-        controlString = f'rc {int(u[0])} {int(u[1])} {0} {0}'
+        controlString = f'rc {0} {0} {0} {int(u[3])}'
 
         # TODO: figure out how to reuse their plotting infra => we can just have 4 "limbs"
 
@@ -198,7 +200,7 @@ class controllerClass(object):
         # Integral Term
         # Value if below threshold
         potentialIntegralValue = self._IntError + error
-        assignmentCondition = self._Kth > potentialIntegralValue 
+        assignmentCondition = self._Kth > abs(potentialIntegralValue) 
 
         self._IntError[assignmentCondition] = potentialIntegralValue[assignmentCondition]
         self._IntError[~assignmentCondition] = self._Kth[~assignmentCondition]

@@ -9,7 +9,8 @@
   <!-- Vision node. -->
   <node name="vision"
         pkg="drone_106a"
-        type="vision.py">
+        type="vision.py"
+        output="screen">
   </node>
   
   <!-- Drone Driver node. -->
@@ -27,8 +28,7 @@
     <!-- Controller node. -->
   <node name="controllerClass"
         pkg="drone_106a"
-        type="controllerClass.py"
-        output="screen">
+        type="controllerClass.py">
   </node>
 
 </launch>

@@ -122,7 +122,7 @@ def stateLoop():
 
 def mainCallback(hs):
 
-    recvInput = {'roll': hs.roll, 'pitch': hs.pitch, 'yaw': hs.yaw, 'h': hs.height, 'gesture': hs.gesture}
+    recvInput = {'roll': hs.roll, 'pitch': hs.pitch, 'yaw': hs.yaw, 'h': hs.height, 'gestureLeft': hs.gestureLeft, 'gestureRight' : hs.gestureRight}
 
     rospy.loginfo(f'recvInput = {recvInput}')
 

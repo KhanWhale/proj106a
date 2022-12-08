@@ -30,12 +30,14 @@ def process(image):
 	image.flags.writeable = True
 	image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-	landmarks, gesture = None, None
+	landmarks, gestures = {}, {}
 
-	if results.multi_hand_landmarks:
+	if results.multi_hand_landmarks and len(results.multi_hand_landmarks) == 2:
 		for (hand_landmarks, handedness) in zip(results.multi_hand_landmarks, results.multi_handedness):
-			landmarks = hand_landmarks
-			
+			handedness_dict = MessageToDict(handedness)
+			which_hand = handedness_dict['classification'][0]['label']
+			print(f"{which_hand} Keypoints Detected")
+			landmarks[which_hand] = hand_landmarks
 			thumb_tip = np.array([hand_landmarks.landmark[4].x, hand_landmarks.landmark[4].y])
 			index_tip = np.array([hand_landmarks.landmark[8].x, hand_landmarks.landmark[8].y])
 			middle_tip = np.array([hand_landmarks.landmark[12].x, hand_landmarks.landmark[12].y])
@@ -48,15 +50,18 @@ def process(image):
 			pinky_distance = np.linalg.norm(pinky_tip - thumb_tip)
 
 			touch_gesture_threshold = 0.05
-			
 			if index_distance < touch_gesture_threshold:
-				gesture = Gesture.INDEX
+				gestures[which_hand] = Gesture.INDEX
+				print(f"gesture hand is {which_hand}")
 			elif middle_distance < touch_gesture_threshold:
-				gesture = Gesture.MIDDLE
+				gestures[which_hand] = Gesture.MIDDLE
+				print(f"gesture hand is {which_hand}")
 			elif ring_distance < touch_gesture_threshold:
-				gesture = Gesture.RING
+				gestures[which_hand] = Gesture.RING
+				print(f"gesture hand is {which_hand}")
 			elif pinky_distance < touch_gesture_threshold:
-				gesture = Gesture.PINKY
+				gestures[which_hand] = Gesture.PINKY
+				print(f"gesture hand is {which_hand}")
 
 			mp_drawing.draw_landmarks(
 					image,
@@ -64,15 +69,17 @@ def process(image):
 					mp_hands.HAND_CONNECTIONS,
 					mp_drawing_styles.get_default_hand_landmarks_style(),
 					mp_drawing_styles.get_default_hand_connections_style())
+	else:
+		landmarks, gestures = None, None
 						
-	return image, landmarks, gesture
+	return image, landmarks, gestures
 			
 
 def init():
 	global hands
 	try:
 		hands = mp_hands.Hands(
-			max_num_hands=1,
+			max_num_hands=2,
 			model_complexity=1,
 			min_detection_confidence=0.5,
 			min_tracking_confidence=0.5)
