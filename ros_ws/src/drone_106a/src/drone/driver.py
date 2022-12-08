@@ -44,19 +44,21 @@ def recv():  # receive data
 def issue_command(command):
 	command = command.encode(encoding="utf-8")
 	bytes_sent = tello_socket.sendto(command, TELLO_ADDR)
-	print(f"Sent {bytes_sent} to Tello")
+	print(f"Sent {bytes_sent}: {command} to Tello")
 	return
 
 def controller_command(command):
 	global controller_ready
 	controller_ready = True
+	command = str(command.data)
 	command = command.encode(encoding="utf-8")
 	bytes_sent = tello_socket.sendto(command, TELLO_ADDR)
-	print(f"Sent {bytes_sent} to Tello")
+	print(f"Sent {bytes_sent}: {command} to Tello")
 	return
 
 def cleanup():
-	# issue_command('land')
+	issue_command('command')
+	issue_command('land')
 	issue_command('command')
 	tello_socket.close()
 	return
@@ -107,7 +109,7 @@ if __name__ == "__main__":
 	tofPublisher = rospy.Publisher("droneTof", String, queue_size=10, latch=True)
 	tofPublisher.publish(str(rospy.Time.now()))
 	rospy.loginfo(f"{time.time()}")
-	# issue_command('takeoff')
+	issue_command('takeoff')
 	try: 
 		rospy.spin()
 	except (rospy.exceptions.ROSException, KeyboardInterrupt) as e:

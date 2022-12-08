@@ -13,6 +13,7 @@ from drone_106a.msg import handState
 from drone_106a.srv import startupCheck
 from controllerClass import controllerClass
 import numpy as np
+from queue import Queue
 
 localIP     = "0.0.0.0"
 statePort   = 8890
@@ -24,9 +25,9 @@ UDPServerSocket = None
 
 
 # global state lock
-lock = Lock()
+# lock = Lock()
 # global state
-currInput = None
+# currInput = None
 
 # controller prev state
 # DEFAULTINPUT = {'roll': 0, 'pitch': 0, 'yaw': 0, 'h': 30}
@@ -34,6 +35,8 @@ prevInput = None # DEFAULTINPUT
 commandPublisher = None
 
 controllerObj = None
+
+q = Queue(10)
 
 def getSingleDatagram():
 
@@ -121,27 +124,29 @@ def mainLoop():
         # commandPublisher.publish('rc 0 0 0 0')
 
         myCurrInput = None
-
-        if lock.acquire(blocking = False):
-            if currInput is not None and currInput != {}:
-                myCurrInput = currInput
-            else:
-                myCurrInput = prevInput
-            lock.release()
-        else:
+        global q
+        if q.empty():
             myCurrInput = prevInput
+        else:
+            myCurrInput = q.get()
 
-        rospy.loginfo(myCurrInput)
+        rospy.loginfo(f'myCurrInput = {myCurrInput}')
 
         if myCurrInput:
 
             commandString = computeControl(myCurrInput, stateDict)
 
-            # publish on topic droneCommand
-            commandPublisher.publish(commandString) 
-            # commandPublisher.publish('rc 0 0 0 0')
-            
             prevInput = myCurrInput
+        
+        else:
+
+            commandString = "rc 0 0 0 0"
+
+        rospy.loginfo(f"commandString = {commandString}")
+
+        # publish on topic droneCommand
+        commandPublisher.publish(commandString) 
+        # commandPublisher.publish('rc 0 0 0 0')
 
 
 # TODO main control fn
@@ -158,13 +163,13 @@ def reCVcallback(hs):
 
     global currInput
     
-    recvInput = {'roll': hs.roll, 'pitch': hs.pitch, 'yaw': hs.yaw, 'h': hs.height}
+    recvInput = {'roll': hs.roll, 'pitch': hs.pitch, 'yaw': hs.yaw, 'h': hs.height, 'gesture': hs.gesture}
 
-    rospy.loginfo(f"CV gave {str(recvInput)}")
+    # rospy.loginfo(f"CV gave {str(recvInput)}")
 
-    lock.acquire()
-    currInput = recvInput
-    lock.release()
+    rospy.loginfo("putting into queue")
+
+    q.put(recvInput)
 
 # CV input updater fn
 def receiveCV():
@@ -188,14 +193,23 @@ if __name__ == "__main__":
 
     startup()    
 
-    # create thread to receive and update CV input
-    recvCVThread = Thread(target=receiveCV)
-    recvCVThread.start()
+    # # create thread to receive and update CV input
+    # recvCVThread = Thread(target=receiveCV)
+    # recvCVThread.start()
 
 
     # create thread to loop on UDPServerSocket
     loopThread = Thread(target=mainLoop)
     loopThread.start() 
-    
 
+    rospy.loginfo("Entered recv handState loop")    
+
+    # listen to topic handState
+    rospy.Subscriber("handState", handState, reCVcallback)
+
+    try:
+        rospy.spin()
+    except (rospy.exceptions.ROSException, KeyboardInterrupt) as e:
+        UDPServerSocket.close()
+        exit(0)
 

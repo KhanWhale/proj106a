@@ -62,7 +62,7 @@ fps = 0
 base_frame = False
 
 rospy.init_node('vision_node', anonymous=True)
-pub = rospy.Publisher('hand_state', handState, queue_size=5)
+pub = rospy.Publisher('handState', handState, queue_size=50)
 handstate_msg = handState()
 
 try:
@@ -134,8 +134,9 @@ try:
 			handstate_msg.pitch = angle_2
 			handstate_msg.yaw = angle_3
 			handstate_msg.height = mean_depth
-			handstate_msg.gesture = gesture
+			handstate_msg.gesture = 0 if not gesture else gesture.value
 			pub.publish(handstate_msg)
+			rospy.loginfo(str(handstate_msg))
 
 		if gesture:
 			print(gesture)
