@@ -108,9 +108,10 @@ if __name__ == "__main__":
 	command_sub = rospy.Subscriber(
 		"droneCommand", String, callback=controller_command
 	)
-	issue_command('speed 50')
+	
 	issue_command('rc 0 0 0 0')
 	issue_command('takeoff')
+	issue_command('speed 20')
 	tofPublisher = rospy.Publisher("droneTof", String, queue_size=9, latch=True)
 	tofPublisher.publish(str(time.time()))
 	rospy.loginfo(f"{time.time()}")

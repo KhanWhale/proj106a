@@ -49,8 +49,8 @@ discrete_cmd_options = ["takeoff", "land", "flip l", "flip r", "flip f", "flip b
 def droneRespCallback(droneResp):
     global discrete_cmd
     if discrete_cmd != "ESTOP":
-        if droneResp.data == "ok" or droneResp.data == 'error':
-            discrete_cmd = None
+        # if droneResp.data == "ok" or droneResp.data == 'error':
+        discrete_cmd = None
 
 def getSingleDatagram():
 
@@ -92,10 +92,10 @@ def startup():
     # connect to drone
     droneBind()
 
-    # ROLL, PITCH, YAW, HEIGHT
-    Kp = np.array([1.0, 1.0, 1.0, 1.0])
-    Kd = np.array([1.0, 1.0, 1.0, 1.0])
-    Ki = np.array([1.0, 1.0, 1.0, 1.0])
+    # ROLL, PITCH, HEIGHT, YAW
+    Kp = np.array([1.0, 1.0, 2.0, 1.0])
+    Kd = np.array([1.0, 1.0, 0.5, 0.5])
+    Ki = np.array([0, 0, 0, 0])
     Kth = np.array([20, 20, 20, 20])
     heightScale = 1.0
 
