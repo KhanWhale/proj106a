@@ -10,6 +10,7 @@ class Gesture(Enum):
 	MIDDLE = 2
 	RING = 3
 	PINKY = 4
+	ESTOP = 5
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -44,13 +45,32 @@ def process(image):
 			ring_tip = np.array([hand_landmarks.landmark[16].x, hand_landmarks.landmark[16].y])
 			pinky_tip = np.array([hand_landmarks.landmark[20].x, hand_landmarks.landmark[20].y])
 
+			index_mcp = np.array([hand_landmarks.landmark[5].x, hand_landmarks.landmark[5].y])
+			middle_mcp = np.array([hand_landmarks.landmark[9].x, hand_landmarks.landmark[9].y])
+			ring_mcp = np.array([hand_landmarks.landmark[13].x, hand_landmarks.landmark[13].y])
+			pinky_mcp = np.array([hand_landmarks.landmark[17].x, hand_landmarks.landmark[17].y])
+
+			index_pip = np.array([hand_landmarks.landmark[6].x, hand_landmarks.landmark[6].y])
+			middle_pip = np.array([hand_landmarks.landmark[10].x, hand_landmarks.landmark[10].y])
+			ring_pip = np.array([hand_landmarks.landmark[14].x, hand_landmarks.landmark[14].y])
+			pinky_pip = np.array([hand_landmarks.landmark[18].x, hand_landmarks.landmark[18].y])
+
+			index_folded = np.linalg.norm(index_tip - index_mcp) < np.linalg.norm(index_pip - index_mcp)
+			middle_folded = np.linalg.norm(middle_tip - middle_mcp) < np.linalg.norm(middle_pip - middle_mcp)
+			ring_folded = np.linalg.norm(ring_tip - ring_mcp) < np.linalg.norm(ring_pip - ring_mcp)
+			pinky_folded = np.linalg.norm(pinky_tip - pinky_mcp) < np.linalg.norm(pinky_pip - pinky_mcp)
+			fist = index_folded and middle_folded and ring_folded and pinky_folded
+
 			index_distance = np.linalg.norm(index_tip - thumb_tip)
 			middle_distance = np.linalg.norm(middle_tip - thumb_tip)
 			ring_distance = np.linalg.norm(ring_tip - thumb_tip)
 			pinky_distance = np.linalg.norm(pinky_tip - thumb_tip)
 
 			touch_gesture_threshold = 0.05
-			if index_distance < touch_gesture_threshold:
+			if fist:
+				gestures[which_hand] = Gesture.ESTOP
+				print(f"gesture hand is {which_hand}")
+			elif index_distance < touch_gesture_threshold:
 				gestures[which_hand] = Gesture.INDEX
 				print(f"gesture hand is {which_hand}")
 			elif middle_distance < touch_gesture_threshold:

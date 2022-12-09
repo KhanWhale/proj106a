@@ -127,6 +127,8 @@ class controllerClass(object):
             return 'flip l'
         elif scaledInput['gestureLeft'] == 4:
             return 'flip r'
+        elif scaledInput['gestureLeft'] == 5:
+            return 'ESTOP'
 
 
         scaledInput['h'] = scaledInput['h'] * self._heightScale
@@ -137,7 +139,7 @@ class controllerClass(object):
 
         print(u)
 
-        controlString = f"rc {int(u[0])} {int(u[1])} {0} {0}"
+        controlString = f"rc {0} {0} {int(u[2])} {0}"
 
         # TODO: figure out how to reuse their plotting infra => we can just have 4 "limbs"
 
@@ -216,6 +218,8 @@ class controllerClass(object):
 
         self._IntError[assignmentCondition] = potentialIntegralValue[assignmentCondition]
         self._IntError[~assignmentCondition] = self._Kth[~assignmentCondition]
+
+        self._IntError[3] = 0
         
         # Derivative Term
         rospy.loginfo(f"t : {t}")
@@ -245,11 +249,11 @@ class controllerClass(object):
 
         ###################### YOUR CODE END ##########################
         u[2] = u[2]-5 if u[2] < 0 else u[2]
-        u[0] = scale_and_clip(u[0], 60, 25)
+        u[0] = scale_and_clip(u[0], 60, 50)
         u[0] = 0 if np.abs(u[0]) < 5 else u[0]
-        u[1] = scale_and_clip(u[1], 60, 25)
+        u[1] = scale_and_clip(u[1], 60, 50)
         u[1] = 0 if np.abs(u[1]) < 5 else u[1]
-        u[2] = scale_and_clip(u[2], 40, 25)
+        u[2] = scale_and_clip(u[2], 40, 50)
         u[3] = scale_and_clip(u[3], 40, 90)
         return u
 

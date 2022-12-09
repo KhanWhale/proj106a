@@ -44,12 +44,13 @@ controllerObj = None
 q = Queue(10)
 
 discrete_cmd = None
-discrete_cmd_options = ["takeoff", "land", "flip l", "flip r", "flip f", "flip b"]
+discrete_cmd_options = ["takeoff", "land", "flip l", "flip r", "flip f", "flip b", "ESTOP"]
 
 def droneRespCallback(droneResp):
     global discrete_cmd
-    if droneResp.data == "ok" or droneResp.data == 'error':
-        discrete_cmd = None
+    if discrete_cmd != "ESTOP":
+        if droneResp.data == "ok" or droneResp.data == 'error':
+            discrete_cmd = None
 
 def getSingleDatagram():
 
@@ -171,6 +172,8 @@ def mainCallback(hs):
         else:
             commandPublisher.publish(commandString) 
             #commandPublisher.publish('rc 0 0 0 0')
+    elif discrete_cmd == "ESTOP":
+        commandPublisher.publish('rc 0 0 0 0')
 
 
 # # UDP state receive loop
