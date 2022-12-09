@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import time
 import itertools
+from sklearn import preprocessing
 from collections import deque
 
 SCALING_FACTOR = 20
@@ -21,7 +22,11 @@ inpMap['h_max'] = 205.17686522463777
 inpMap['h_min'] = -119.56328012410148
 
 # TODO: Consider using a rate if we're publishing to drone too quick - (don't expect this to be the case)
-# will have to decouple state update from control loop then (right now state update and control loop are basically one)
+# will have to decouple state update from control loop then (right now state update andless than control loop are basically one)
+def scale_and_clip(input, input_thresh, output_thresh): #window centered around 0
+    print(input)
+    mapped = ((input - (-input_thresh)) * (2*output_thresh))/(2*input_thresh) + (-output_thresh-10) 
+    return mapped if abs(mapped) < output_thresh else np.sign(mapped) * output_thresh
 class controllerClass(object):
     """
     A controller object
@@ -121,11 +126,12 @@ class controllerClass(object):
         scaledInput['h'] = scaledInput['h'] * self._heightScale
 
         # Get the input for this time
+        print(f"The Height delta is {scaledInput['h']}")
         u = self.step_control(scaledInput, state, t)
 
         print(u)
 
-        controlString = f'rc {0} {0} {0} {int(u[3])}'
+        controlString = f"rc {int(u[0])} {int(u[1])} {0} {0}"
 
         # TODO: figure out how to reuse their plotting infra => we can just have 4 "limbs"
 
@@ -183,9 +189,9 @@ class controllerClass(object):
         print(f'input = {input}')
         rospy.loginfo(f'input = {input}')
 
-        current_position = np.array([state[key] for key in ['roll', 'pitch', 'yaw', 'h']])
+        current_position = np.array([state[key] for key in ['y', 'x', 'z', 'yaw']])
 
-        target_position = np.array([input[key] for key in ['roll', 'pitch', 'yaw', 'h']])
+        target_position = np.array([input[key] for key in ['roll', 'pitch', 'h', 'yaw']])
 
         # For Plotting
         self._times.append(t)
@@ -194,7 +200,7 @@ class controllerClass(object):
 
         # Error Term
         error = target_position - current_position
-
+        print(f"The current height is {current_position[2]}, targeted height is {target_position[2]}")
         print(f"error = {error}")
 
         # Integral Term
@@ -232,7 +238,13 @@ class controllerClass(object):
         u = self._Kp*error + self._Kd*ed  + self._Ki*self._IntError
 
         ###################### YOUR CODE END ##########################
-
+        u[2] = u[2]-5 if u[2] < 0 else u[2]
+        u[0] = scale_and_clip(u[0], 60, 25)
+        u[0] = 0 if np.abs(u[0]) < 5 else u[0]
+        u[1] = scale_and_clip(u[1], 60, 25)
+        u[1] = 0 if np.abs(u[1]) < 5 else u[1]
+        u[2] = scale_and_clip(u[2], 40, 25)
+        u[3] = scale_and_clip(u[3], 40, 90)
         return u
 
 

@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import hand_orientation
 from graph import *
 import rospy
+from collections import deque
 from drone_106a.msg import handState
 from drone_106a.srv import startupCheck
 
@@ -27,10 +28,8 @@ pitch_max = 0
 pitch_min = 0
 yaw_max = 0
 yaw_min = 0
-yaw_mean = []
 h_max = 0
 h_min = 0
-h_mean = []
 pipeline_wrapper = rs.pipeline_wrapper(pipeline)
 pipeline_profile = config.resolve(pipeline_wrapper)
 device = pipeline_profile.get_device()
@@ -69,14 +68,15 @@ fps_calc_window = 1
 num_frames = 0
 fps = 0
 base_frame = False
-
+input_ring_buff_capacity = 5
+input_ring_buff = deque([], input_ring_buff_capacity)
 rospy.init_node('vision_node', anonymous=True)
 pub = rospy.Publisher('handState', handState, queue_size=50)
 handstate_msg = handState()
 
 def visionLoop(breakOnHand):
 
-	global roll_max, roll_min, pitch_max, pitch_min, yaw_max, yaw_min, h_max, h_min, yaw_mean, h_mean
+	global roll_max, roll_min, pitch_max, pitch_min, yaw_max, yaw_min, h_max, h_min
 
 	rospy.loginfo(f"Break ON Hand : {breakOnHand}")
 	global base_frame, num_frames, start_time
@@ -132,6 +132,9 @@ def visionLoop(breakOnHand):
 				mean_depth_left = np.mean(depths) / 10
 
 				#RIGHT HAND
+				x_coords = np.array([])
+				y_coords = np.array([])
+				z_coords = np.array([])
 				landmarks = hand_landmarks['Right'].landmark
 				depths = []
 				for i in range(21): # keypoint in mp.solutions.hands.HandLandmark
@@ -164,11 +167,9 @@ def visionLoop(breakOnHand):
 
 					h_max = max(mean_depth_left, h_max)
 					h_min = min(mean_depth_left, h_min)
-					h_mean.append(mean_depth_left)
 
 					yaw_max = max(mean_depth_right, yaw_max)
 					yaw_min = min(mean_depth_right, yaw_min)
-					yaw_mean.append(mean_depth_right)
 
 					print("\n Angle 1 (Yaw):", mean_depth_right)
 					print("\n Angle 2 (Pitch):", pitch)
@@ -185,8 +186,6 @@ def visionLoop(breakOnHand):
 					if j < 50: 
 						continue
 					else:
-						yaw_mean = np.mean(yaw_mean)
-						h_mean = np.mean(h_mean)
 						print(f"rolls : {roll_min} {roll_max}")
 						print(f"pitches : {pitch_min} {pitch_max}")
 						print(f"yaws : {yaw_min} {yaw_max}")
@@ -197,11 +196,13 @@ def visionLoop(breakOnHand):
 
 				#YAW AND HEIGHT BOTH STRICTLY POSITIVE, MAP TO WITHIN RANGE
 				#clip the heights 
-				yaw = int(yaw_min if mean_depth_right < yaw_min else min(mean_depth_right, yaw_max))
-				roll = roll_min if roll < roll_min else min(roll, roll_max)
-				pitch = pitch_min if pitch < pitch_min else min(pitch, pitch_max)
-				height = (h_min if mean_depth_left < h_min else min(mean_depth_left, h_max)) - h_mean #height should be a delta
+				yaw = (yaw_min if mean_depth_right < yaw_min else min(mean_depth_right, yaw_max)) - 0.5*(yaw_max - yaw_min)
+				roll = roll #(roll_min if roll < roll_min else min(roll, roll_max)) - 0.5*(roll_max - roll_min)
+				pitch = pitch + 50#(pitch_min if pitch < pitch_min else min(pitch, pitch_max)) - 0.5*(pitch_max - pitch_min)
+				height = (h_min if mean_depth_left < h_min else min(mean_depth_left, h_max)) - 0.5*(h_max - h_min) #height should be a delta
 
+				input_ring_buff.append(np.array([roll, pitch, yaw, height]))
+				roll, pitch, yaw, height = list(map(int, np.mean(input_ring_buff, axis=0)))
 					
 				print("\n Angle 1 (Yaw):", yaw)
 				print("\n Angle 2 (Pitch):", pitch)

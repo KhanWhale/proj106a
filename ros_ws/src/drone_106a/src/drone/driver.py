@@ -83,9 +83,10 @@ if __name__ == "__main__":
 	recvThread.start()
 
 	curr_time = time.time()
+	issue_command('command')
 	while time.time() - curr_time < 8:
 		# Put the tello in commander mode
-		issue_command('command')
+		issue_command('battery?')
 		time.sleep(0.5)
 		print(f'startup command status {command_complete}')
 		if command_complete:
@@ -107,11 +108,11 @@ if __name__ == "__main__":
 	command_sub = rospy.Subscriber(
 		"droneCommand", String, callback=controller_command
 	)
-	tofPublisher = rospy.Publisher("droneTof", String, queue_size=10, latch=True)
-	tofPublisher.publish(str(time.time()))
-	rospy.loginfo(f"{time.time()}")
 	issue_command('rc 0 0 0 0')
 	issue_command('takeoff')
+	tofPublisher = rospy.Publisher("droneTof", String, queue_size=9, latch=True)
+	tofPublisher.publish(str(time.time()))
+	rospy.loginfo(f"{time.time()}")
 	try: 
 		rospy.spin()
 	except (rospy.exceptions.ROSException, KeyboardInterrupt) as e:

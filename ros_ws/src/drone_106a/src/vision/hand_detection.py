@@ -36,7 +36,7 @@ def process(image):
 		for (hand_landmarks, handedness) in zip(results.multi_hand_landmarks, results.multi_handedness):
 			handedness_dict = MessageToDict(handedness)
 			which_hand = handedness_dict['classification'][0]['label']
-			print(f"{which_hand} Keypoints Detected")
+			# print(f"{which_hand} Keypoints Detected")
 			landmarks[which_hand] = hand_landmarks
 			thumb_tip = np.array([hand_landmarks.landmark[4].x, hand_landmarks.landmark[4].y])
 			index_tip = np.array([hand_landmarks.landmark[8].x, hand_landmarks.landmark[8].y])

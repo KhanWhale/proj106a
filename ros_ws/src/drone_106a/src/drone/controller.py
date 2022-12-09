@@ -12,13 +12,14 @@ from threading import Thread, Lock
 from drone_106a.msg import handState
 from drone_106a.srv import startupCheck
 from controllerClass import controllerClass
+import time
 import numpy as np
 from queue import Queue
 
 localIP     = "0.0.0.0"
 statePort   = 8890
 bufferSize  = 1024
-
+landrecvd = False
 # Create a datagram socket
 UDPServerSocket = None 
 # destinationSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
@@ -33,7 +34,9 @@ UDPServerSocket = None
 # DEFAULTINPUT = {'roll': 0, 'pitch': 0, 'yaw': 0, 'h': 30}
 prevInput = None # DEFAULTINPUT
 commandPublisher = None
-state = None
+state = {}
+state_vec = np.zeros((10, 1))
+xyz = None
 
 controllerObj = None
 
@@ -103,25 +106,32 @@ def startup():
     controllerObj.set_start(start_time.data)
 
 def parser(msg):
-    dict = {}
+    global state
+    if 'z' not in state:
+        state['z'] = 0
+        state['x'] = 0
+        state['y'] = 0
+    else:
+        state['z'] = state['z'] + state['vgz']*0.1 
+        state['y'] = state['y'] + state['vgy']*0.1 + (state['agy']/2)*(0.1**2)
+        state['x'] = state['x'] + state['vgx']*0.1 + (state['agx']/2)*(0.1**2)
     line = msg.split(";")
     for pair in line:
         splits = pair.split(":")
         if (len(splits) == 2):
-            dict[splits[0]] = float(splits[1])
-    return dict
+            state[splits[0]] = float(splits[1])
+
+    #have the dictionary of values
+    return 
 
 def stateLoop():
     rospy.loginfo("entered stateLoop")
-
-    global state
-
     while True:
         stateString = getSingleDatagram()
-        state = parser(stateString)
+        parser(stateString)
 
 def mainCallback(hs):
-
+    global landrecvd
     recvInput = {'roll': hs.roll, 'pitch': hs.pitch, 'yaw': hs.yaw, 'h': hs.height, 'gestureLeft': hs.gestureLeft, 'gestureRight' : hs.gestureRight}
 
     rospy.loginfo(f'recvInput = {recvInput}')
@@ -139,8 +149,21 @@ def mainCallback(hs):
     rospy.loginfo(f"commandString = {commandString}")
 
     # publish on topic droneCommand
-    commandPublisher.publish(commandString) 
-    # commandPublisher.publish('rc 0 0 0 0')
+    #if commandString == "land":
+    #    commandPublisher.publish('rc 0 0 0 0') 
+
+    
+    if commandString == "land":
+        commandPublisher.publish('rc 0 0 0 0')
+        commandPublisher.publish('land') 
+        commandPublisher.publish('land') 
+        commandPublisher.publish('land') 
+        commandPublisher.publish('land') 
+        commandPublisher.publish('land') 
+    else:
+        commandPublisher.publish(commandString) 
+        #commandPublisher.publish('rc 0 0 0 0')
+
 
 # # UDP state receive loop
 # def mainLoop():
