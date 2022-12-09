@@ -119,8 +119,14 @@ class controllerClass(object):
         # for key in input.keys():
             # if 'gesture' not in key:
             #     scaledInput[key] = SCALING_FACTOR * (max(-input[key]/inpMap[key + '_min'], -1) if input[key] < 0 else min(input[key]/inpMap[key + '_max'], 1))
-        if scaledInput['gestureLeft'] != 0:
+        if scaledInput['gestureLeft'] == 1:
+            return 'takeoff'
+        elif scaledInput['gestureLeft'] == 2:
             return 'land'
+        elif scaledInput['gestureLeft'] == 3:
+            return 'flip l'
+        elif scaledInput['gestureLeft'] == 4:
+            return 'flip r'
 
 
         scaledInput['h'] = scaledInput['h'] * self._heightScale

@@ -34,6 +34,7 @@ UDPServerSocket = None
 # DEFAULTINPUT = {'roll': 0, 'pitch': 0, 'yaw': 0, 'h': 30}
 prevInput = None # DEFAULTINPUT
 commandPublisher = None
+droneRespSubscriber = None
 state = {}
 state_vec = np.zeros((10, 1))
 xyz = None
@@ -41,6 +42,14 @@ xyz = None
 controllerObj = None
 
 q = Queue(10)
+
+discrete_cmd = None
+discrete_cmd_options = ["takeoff", "land", "flip l", "flip r", "flip f", "flip b"]
+
+def droneRespCallback(droneResp):
+    global discrete_cmd
+    if droneResp.data == "ok" or droneResp.data == 'error':
+        discrete_cmd = None
 
 def getSingleDatagram():
 
@@ -72,10 +81,12 @@ def droneBind():
 
 def startup():
 
-    global commandPublisher, controllerObj
+    global commandPublisher, controllerObj, droneRespSubscriber
 
     # set up droneCommand topic
     commandPublisher = rospy.Publisher('droneCommand', String, queue_size=10)
+
+    droneRespSubscriber = rospy.Subscriber("droneResp", String, callback=droneRespCallback)
 
     # connect to drone
     droneBind()
@@ -151,18 +162,15 @@ def mainCallback(hs):
     # publish on topic droneCommand
     #if commandString == "land":
     #    commandPublisher.publish('rc 0 0 0 0') 
-
-    
-    if commandString == "land":
-        commandPublisher.publish('rc 0 0 0 0')
-        commandPublisher.publish('land') 
-        commandPublisher.publish('land') 
-        commandPublisher.publish('land') 
-        commandPublisher.publish('land') 
-        commandPublisher.publish('land') 
-    else:
-        commandPublisher.publish(commandString) 
-        #commandPublisher.publish('rc 0 0 0 0')
+    global discrete_cmd
+    if not discrete_cmd:
+        if commandString in discrete_cmd_options:
+            discrete_cmd = commandString
+            commandPublisher.publish('rc 0 0 0 0')
+            commandPublisher.publish(discrete_cmd)
+        else:
+            commandPublisher.publish(commandString) 
+            #commandPublisher.publish('rc 0 0 0 0')
 
 
 # # UDP state receive loop
